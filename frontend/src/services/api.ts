@@ -49,12 +49,15 @@ api.interceptors.response.use(
 /**
  * Parse natural language prompt into structured process modification
  * POST /api/parse-prompt
- * Body: { prompt: string }
+ * Body: { prompt: string, current_process?: { activities: string[], edges: any[], kpis: any } }
  * Returns: structured process modification JSON
  */
-export const parsePrompt = async (prompt: string): Promise<PromptResponse> => {
+export const parsePrompt = async (prompt: string, currentProcess?: { activities: string[], edges?: any[], kpis?: any }): Promise<PromptResponse> => {
   try {
-    const response = await api.post('/api/parse-prompt', { prompt });
+    const response = await api.post('/api/parse-prompt', { 
+      prompt,
+      current_process: currentProcess 
+    });
     return response.data;
   } catch (error: any) {
     console.error('Error parsing prompt:', error);

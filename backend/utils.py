@@ -3,6 +3,14 @@ import networkx as nx
 from typing import Dict, Any, List
 import random
 
+# Dataset activities - can be used for validation
+common_activities = [
+    "Receive Customer Order", "Validate Customer Order", "Perform Credit Check",
+    "Approve Order", "Reject Order", "Schedule Order Fulfillment",
+    "Generate Pick List", "Pack Items", "Generate Shipping Label",
+    "Ship Order", "Generate Invoice", "Apply Discount", "Process Return Request"
+]
+
 def parse_prompt_mock(prompt: str) -> Dict[str, Any]:
     """
     Mock LLM prompt parser that converts natural language to structured process modifications.
@@ -150,12 +158,7 @@ def parse_prompt_mock(prompt: str) -> Dict[str, Any]:
             }
     
     # If no specific patterns matched, try to extract activity names and guess intent
-    common_activities = [
-        "Order Received", "Order Approved", "Invoice Created", 
-        "Payment Validation", "Payment Received", "Credit Check",
-        "Inventory Check", "Shipping", "Delivery Confirmation"
-    ]
-    
+    # Using real O2C activity names from the dataset (defined at module level)
     mentioned_activities = []
     for activity in common_activities:
         if activity.lower() in prompt_lower:
@@ -167,7 +170,7 @@ def parse_prompt_mock(prompt: str) -> Dict[str, Any]:
         return {
             "action": "add_step",
             "new_activity": mentioned_activities[0],
-            "position": {"after": "Order Received"}  # Default position
+            "position": {"after": "Receive Customer Order"}  # Default position - first activity in real O2C process
         }
     else:
         # Generic response for unclear prompts

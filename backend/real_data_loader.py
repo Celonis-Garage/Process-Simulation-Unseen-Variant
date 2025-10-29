@@ -343,17 +343,28 @@ class RealDataLoader:
         
         return event_log
     
-    def get_event_log_for_activities(self, activities: List[str], n_cases: int = 1) -> pd.DataFrame:
+    def get_event_log_for_activities(self, activities: List[str], n_cases: int = 1, custom_kpis: Dict[str, Dict[str, float]] = None) -> pd.DataFrame:
         """
         Generate a simulated event log for the user's designed process.
         Creates NEW synthetic order(s) following the specified activity sequence.
         Returns a DataFrame in the format expected by the frontend.
+        
+        Args:
+            activities: List of activity names in order
+            n_cases: Number of cases to simulate
+            custom_kpis: Optional dict of custom KPIs to override data-based KPIs
+                        Format: {"Activity Name": {"avg_time": hours, "cost": dollars}}
         """
         if not activities:
             return pd.DataFrame()
         
         # Get KPI data for realistic timing
-        kpis = self.get_event_kpis_for_activities(activities)
+        if custom_kpis:
+            # Use custom KPIs if provided, fall back to dataset KPIs for missing activities
+            dataset_kpis = self.get_event_kpis_for_activities(activities)
+            kpis = {**dataset_kpis, **custom_kpis}  # Custom KPIs override dataset KPIs
+        else:
+            kpis = self.get_event_kpis_for_activities(activities)
         
         # Generate simulated order(s)
         event_log = []
@@ -373,19 +384,20 @@ class RealDataLoader:
             
             # Generate events in the EXACT order specified by user's design
             for activity in activities:
-                # Get timing info for this activity
-                activity_kpi = kpis.get(activity, {"avg_time": 1.0})
+                # Get timing and cost info for this activity
+                activity_kpi = kpis.get(activity, {"avg_time": 1.0, "cost": 50.0})
                 avg_time_hours = activity_kpi.get("avg_time", 1.0)
+                activity_cost = activity_kpi.get("cost", 50.0)
                 
-                # Add some realistic variation (±20%)
-                time_variation = np.random.uniform(0.8, 1.2)
-                actual_time = avg_time_hours * time_variation
+                # Always use exact values - no variation
+                actual_time = avg_time_hours
                 
                 event_log.append({
                     "Case ID": case_id,
                     "Activity": activity,
                     "Timestamp": current_time.strftime("%Y-%m-%d %H:%M:%S"),
                     "Throughput Time": round(actual_time, 2),
+                    "Cost": round(activity_cost, 2),  # ✅ Add cost from KPIs
                     "Order Value": round(order_value, 2)
                 })
                 

@@ -41,6 +41,11 @@ source venv/bin/activate
 echo "Installing/updating Python dependencies..."
 pip install --upgrade pip
 pip install -r requirements.txt
+
+# Set GROQ API KEY for LLM service
+echo "🤖 Setting up LLM service with Groq API..."
+export GROQ_API_KEY="Your API Key Here"
+
 echo "🚀 Starting backend server..."
 echo "Backend will be available at: http://localhost:8000"
 uvicorn main:app --reload --host 0.0.0.0 --port 8000 > backend.log 2>&1 &

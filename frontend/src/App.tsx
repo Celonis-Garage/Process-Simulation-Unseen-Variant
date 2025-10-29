@@ -18,6 +18,7 @@ export interface ProcessStep {
 }
 
 export interface ProcessEdge {
+  id?: string;
   from: string;
   to: string;
   cases: number;
@@ -253,6 +254,30 @@ const calculateKPIs = (eventLogs: EventLog[], steps: ProcessStep[]): KPIData => 
 // Store base case KPIs - will be updated after data loads
 let baseKPIs = calculateKPIs(generateEventLogsFromSteps(cachedFallbackSteps), cachedFallbackSteps);
 
+// Helper function to build KPIs object from steps
+const buildKPIsFromSteps = (steps: ProcessStep[]): any => {
+  const kpis: any = {};
+  steps.filter(s => s.id !== 'start' && s.id !== 'end').forEach(s => {
+    const timeMatch = s.avgTime.match(/(\d+\.?\d*)([hdm])/);
+    const costMatch = s.avgCost.match(/\$?([\d.]+)/);
+    
+    let timeInHours = 1.0;
+    if (timeMatch) {
+      const value = parseFloat(timeMatch[1]);
+      const unit = timeMatch[2];
+      if (unit === 'h') timeInHours = value;
+      else if (unit === 'd') timeInHours = value * 24;
+      else if (unit === 'm') timeInHours = value / 60;
+    }
+    
+    kpis[s.name] = {
+      avg_time: timeInHours,
+      cost: costMatch ? parseFloat(costMatch[1]) : 50
+    };
+  });
+  return kpis;
+};
+
 export default function App() {
   const [steps, setSteps] = useState<ProcessStep[]>([]);
   const [edges, setEdges] = useState<ProcessEdge[]>([]);
@@ -335,7 +360,7 @@ export default function App() {
             activity: log.Activity || log.activity || 'Unknown',
             timestamp: log.Timestamp || log.timestamp || new Date().toISOString(),
             throughputTime: log['Throughput Time']?.toString() + 'h' || '0h',
-            cost: '$' + (log['Order Value'] || log.cost || 0).toFixed(2),
+            cost: '$' + (log.Cost || log.cost || 0).toFixed(2),  // ✅ Use Cost field from backend
             resource: getResourceForStep(log.Activity || log.activity || 'System')
           }));
           setEventLogs(transformedLogs);
@@ -399,17 +424,20 @@ export default function App() {
     );
     setEdges(newEdges);
 
-    // Fetch fresh event logs from backend
+    // Fetch fresh event logs from backend WITH KPIs
     (async () => {
       try {
         const activities = newSteps
           .filter(s => s.id !== 'start' && s.id !== 'end')
           .map(s => s.name);
 
+        // ✅ Build KPIs object
+        const kpis = buildKPIsFromSteps(newSteps);
+
         const eventLogResponse = await generateEventLog({
           activities,
           edges: [],
-          kpis: {}
+          kpis  // ✅ Pass KPIs!
         });
 
         if (eventLogResponse.event_log && eventLogResponse.event_log.length > 0) {
@@ -418,7 +446,7 @@ export default function App() {
             activity: log.Activity || log.activity || 'Unknown',
             timestamp: log.Timestamp || log.timestamp || new Date().toISOString(),
             throughputTime: log['Throughput Time']?.toString() + 'h' || '0h',
-            cost: '$' + (log['Order Value'] || log.cost || 0).toFixed(2),
+            cost: '$' + (log.Cost || log.cost || 0).toFixed(2),  // ✅ Use Cost field from backend
             resource: getResourceForStep(log.Activity || log.activity || 'System')
           }));
           setEventLogs(transformedLogs);
@@ -468,17 +496,20 @@ export default function App() {
     }
     setEdges(newEdges);
 
-    // Fetch fresh event logs from backend
+    // Fetch fresh event logs from backend WITH KPIs
     (async () => {
       try {
         const activities = newSteps
           .filter(s => s.id !== 'start' && s.id !== 'end')
           .map(s => s.name);
 
+        // ✅ Build KPIs object
+        const kpis = buildKPIsFromSteps(newSteps);
+
         const eventLogResponse = await generateEventLog({
           activities,
           edges: [],
-          kpis: {}
+          kpis  // ✅ Pass KPIs!
         });
 
         if (eventLogResponse.event_log && eventLogResponse.event_log.length > 0) {
@@ -487,7 +518,7 @@ export default function App() {
             activity: log.Activity || log.activity || 'Unknown',
             timestamp: log.Timestamp || log.timestamp || new Date().toISOString(),
             throughputTime: log['Throughput Time']?.toString() + 'h' || '0h',
-            cost: '$' + (log['Order Value'] || log.cost || 0).toFixed(2),
+            cost: '$' + (log.Cost || log.cost || 0).toFixed(2),  // ✅ Use Cost field from backend
             resource: getResourceForStep(log.Activity || log.activity || 'System')
           }));
           setEventLogs(transformedLogs);
@@ -525,17 +556,20 @@ export default function App() {
     }
     setEdges(newEdges);
 
-    // Fetch fresh event logs from backend
+    // Fetch fresh event logs from backend WITH KPIs
     (async () => {
       try {
         const activities = reorderedSteps
           .filter(s => s.id !== 'start' && s.id !== 'end')
           .map(s => s.name);
 
+        // ✅ Build KPIs object
+        const kpis = buildKPIsFromSteps(reorderedSteps);
+
         const eventLogResponse = await generateEventLog({
           activities,
           edges: [],
-          kpis: {}
+          kpis  // ✅ Pass KPIs!
         });
 
         if (eventLogResponse.event_log && eventLogResponse.event_log.length > 0) {
@@ -544,7 +578,7 @@ export default function App() {
             activity: log.Activity || log.activity || 'Unknown',
             timestamp: log.Timestamp || log.timestamp || new Date().toISOString(),
             throughputTime: log['Throughput Time']?.toString() + 'h' || '0h',
-            cost: '$' + (log['Order Value'] || log.cost || 0).toFixed(2),
+            cost: '$' + (log.Cost || log.cost || 0).toFixed(2),  // ✅ Use Cost field from backend
             resource: getResourceForStep(log.Activity || log.activity || 'System')
           }));
           setEventLogs(transformedLogs);
@@ -570,17 +604,20 @@ export default function App() {
       setProcessChanges([`Reduced '${step.name}' time from ${step.avgTime} to ${updates.avgTime}`]);
     }
     
-    // Fetch fresh event logs from backend
+    // Fetch fresh event logs from backend WITH UPDATED KPIs
     (async () => {
       try {
         const activities = newSteps
           .filter(s => s.id !== 'start' && s.id !== 'end')
           .map(s => s.name);
 
+        // ✅ Build KPIs object with updated values
+        const kpis = buildKPIsFromSteps(newSteps);
+
         const eventLogResponse = await generateEventLog({
           activities,
           edges: [],
-          kpis: {}
+          kpis  // ✅ Pass updated KPIs!
         });
 
         if (eventLogResponse.event_log && eventLogResponse.event_log.length > 0) {
@@ -589,7 +626,7 @@ export default function App() {
             activity: log.Activity || log.activity || 'Unknown',
             timestamp: log.Timestamp || log.timestamp || new Date().toISOString(),
             throughputTime: log['Throughput Time']?.toString() + 'h' || '0h',
-            cost: '$' + (log['Order Value'] || log.cost || 0).toFixed(2),
+            cost: '$' + (log.Cost || log.cost || 0).toFixed(2),  // ✅ Use Cost field from backend
             resource: getResourceForStep(log.Activity || log.activity || 'System')
           }));
           setEventLogs(transformedLogs);
@@ -612,9 +649,12 @@ export default function App() {
         .filter(s => s.id !== 'start' && s.id !== 'end')
         .map(s => s.name);
       
-      const graphEdges = edges.map(e => ({
+      const graphEdges = edges.map((e, idx) => ({
+        id: e.id || `edge-${idx}`,
         from: steps.find(s => s.id === e.from)?.name || '',
-        to: steps.find(s => s.id === e.to)?.name || ''
+        to: steps.find(s => s.id === e.to)?.name || '',
+        cases: e.cases || 0,
+        avgDays: e.avgDays || 0
       })).filter(e => e.from && e.to && e.from !== 'Start' && e.from !== 'End' && e.to !== 'Start' && e.to !== 'End');
       
       const kpis: any = {};
@@ -670,9 +710,17 @@ export default function App() {
     setMessages([...messages, { type: 'user', text: prompt }]);
     
     try {
-      // Call backend API to parse the prompt
+      // Build current process state to send to LLM
+      const currentProcess = {
+        activities: steps.filter(s => s.id !== 'start' && s.id !== 'end').map(s => s.name),
+        edges: edges,
+        kpis: buildKPIsFromSteps(steps)
+      };
+      
+      // Call backend API to parse the prompt WITH current process context
       console.log('Parsing prompt with backend API:', prompt);
-      const response = await parsePrompt(prompt);
+      console.log('Current process activities:', currentProcess.activities);
+      const response = await parsePrompt(prompt, currentProcess);
       console.log('Parsed response:', response);
       
       // Handle different action types
@@ -769,6 +817,82 @@ export default function App() {
           }]);
         }
       }
+      else if (response.action === 'make_parallel') {
+        console.log('make_parallel action received:', response);
+        const activitiesToParallelize = response.activities || [];
+        console.log('Activities to parallelize:', activitiesToParallelize);
+        console.log('Activities length:', activitiesToParallelize.length);
+        
+        if (!activitiesToParallelize || activitiesToParallelize.length < 2) {
+          setMessages(prev => [...prev, {
+            type: 'ai',
+            text: `I need at least 2 activities to make parallel. Received: ${JSON.stringify(activitiesToParallelize)}`
+          }]);
+          return;
+        }
+        
+        // Find the steps - case insensitive matching
+        const stepsToParallelize = activitiesToParallelize.map((actName: string) => {
+          const found = steps.find(s => s.name.toLowerCase() === actName.toLowerCase());
+          console.log(`Looking for "${actName}":`, found ? `Found: ${found.name}` : 'Not found');
+          return found;
+        }).filter(Boolean);
+        
+        console.log('Steps found:', stepsToParallelize.length, 'out of', activitiesToParallelize.length);
+        
+        if (stepsToParallelize.length === activitiesToParallelize.length) {
+          setMessages(prev => [...prev, {
+            type: 'ai',
+            text: `✓ Made ${activitiesToParallelize.join(' and ')} parallel. Note: Visual representation of parallel flows is coming soon. The simulation will account for parallel execution reducing overall cycle time.`
+          }]);
+          setVariantName(`Optimized: Parallelized Activities`);
+        } else {
+          const availableActivities = steps.filter(s => s.id !== 'start' && s.id !== 'end').map(s => s.name).join(', ');
+          setMessages(prev => [...prev, {
+            type: 'ai',
+            text: `I couldn't find all the specified activities.\nRequested: ${activitiesToParallelize.join(', ')}\nAvailable: ${availableActivities}`
+          }]);
+        }
+      }
+      else if (response.action === 'reorder') {
+        const activityToMove = response.activity || '';
+        const position = response.position || {};
+        
+        const stepToMove = steps.find(s => 
+          s.name.toLowerCase() === activityToMove.toLowerCase()
+        );
+        
+        let referenceStep: ProcessStep | undefined;
+        if (position.before) {
+          referenceStep = steps.find(s => s.name.toLowerCase() === position.before.toLowerCase());
+        } else if (position.after) {
+          referenceStep = steps.find(s => s.name.toLowerCase() === position.after.toLowerCase());
+        }
+        
+        if (stepToMove && referenceStep && stepToMove.id !== 'start' && stepToMove.id !== 'end') {
+          // Remove step from current position
+          const newSteps = steps.filter(s => s.id !== stepToMove.id);
+          
+          // Find new index
+          const refIndex = newSteps.findIndex(s => s.id === referenceStep.id);
+          const insertIndex = position.before ? refIndex : refIndex + 1;
+          
+          // Insert at new position
+          newSteps.splice(insertIndex, 0, stepToMove);
+          
+          handleReorderSteps(newSteps);
+          setVariantName(`Optimized: Reordered ${stepToMove.name}`);
+          setMessages(prev => [...prev, {
+            type: 'ai',
+            text: `✓ Moved '${stepToMove.name}' ${position.before ? 'before' : 'after'} '${referenceStep.name}'. This may optimize the process flow.`
+          }]);
+        } else {
+          setMessages(prev => [...prev, {
+            type: 'ai',
+            text: `I couldn't find the specified activities for reordering. Available: ${steps.filter(s => s.id !== 'start' && s.id !== 'end').map(s => s.name).join(', ')}`
+          }]);
+        }
+      }
       else if (response.action === 'clarification_needed') {
         setMessages(prev => [...prev, {
           type: 'ai',
@@ -778,7 +902,7 @@ export default function App() {
         if (response.suggestions && response.suggestions.length > 0) {
           setMessages(prev => [...prev, {
             type: 'ai',
-            text: `Suggestions:\n${response.suggestions.map((s: string) => `• ${s}`).join('\n')}`
+            text: `Suggestions:\n${response.suggestions?.map((s: string) => `• ${s}`).join('\n')}`
           }]);
         }
       }
