@@ -363,7 +363,7 @@ Please follow the existing code style and include appropriate comments for compl
 
 ## License
 
-This project is available under the MIT License. See the LICENSE file for details.
+This project is available under the initiative of Celonis Garage Innovation Division in Celonis India Pvt Ltd.
 
 ## Acknowledgments
 
