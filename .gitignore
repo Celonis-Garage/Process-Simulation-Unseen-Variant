@@ -1,0 +1,210 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Virtual Environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+virtualenv/
+.virtualenv/
+
+# PyCharm
+.idea/
+
+# VS Code
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json
+*.code-workspace
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb_checkpoints/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+.envrc
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Data files
+data/
+datasets/
+*.csv
+*.xlsx
+*.xls
+*.json
+!package.json
+!package-lock.json
+!tsconfig.json
+*.parquet
+*.feather
+*.h5
+*.hdf5
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Testing
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache
+
+# Cache files
+.cache/
+*.cache
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.ruff_cache/
+.pytype/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+
+# Linux
+*~
+.directory
+.Trash-*
+
+# Node.js (for frontend)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+dist/
+dist-ssr/
+*.local
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# Compressed files
+*.zip
+*.tar.gz
+*.rar
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# Backup files
+*.bak
+*.backup
+*.old
+*.orig
+
+# Lock files (optional - uncomment if you want to ignore them)
+# poetry.lock
+# Pipfile.lock
+
+# Secrets and credentials
+secrets/
+credentials/
+*.key
+*.pem
+*.cert
+*.crt
+*.p12
+*.pfx
+
+# ML Models (uncomment if needed)
+# *.pkl
+# *.pickle
+# *.pt
+# *.pth
+# *.h5
+# *.onnx
+# models/
+# checkpoints/
+
+# IDEs and Editors
+*.sublime-project
+*.sublime-workspace
+.idea/
+*.iml
+*.swp
+*.swo
+*.swn
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.tmproj
+*.tmproject
+.vscode-test/
+
+# Output and generated files
+output/
+outputs/
+results/
+*.out
+*.pid
+
