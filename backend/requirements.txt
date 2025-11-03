@@ -1,10 +1,29 @@
+# Backend API dependencies
 fastapi==0.115.0
 uvicorn[standard]==0.32.0
-pandas==2.2.3
-networkx==3.4.2
-scikit-learn==1.5.2
 python-multipart==0.0.12
 pydantic==2.9.2
-numpy==2.1.2
-groq==0.33.0
 python-dotenv==1.0.0
+
+# Data processing and analysis
+pandas==2.2.3
+numpy==2.1.2
+networkx==3.4.2
+scikit-learn==1.5.2
+lxml==5.3.0
+
+# Deep Learning
+tensorflow==2.20.0
+
+# LLM Integration
+groq==0.33.0
+
+# Jupyter Notebook support
+jupyter==1.1.1
+ipykernel==6.29.5
+notebook==7.3.2
+ipython<9.0  # Pin to 8.x for Python 3.13 compatibility
+
+# Visualization
+matplotlib==3.9.3
+seaborn==0.13.2

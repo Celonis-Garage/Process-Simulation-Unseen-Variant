@@ -1,0 +1,40 @@
+{
+  "num_features": 28,
+  "feature_names": [
+    "Receive Customer Order",
+    "Validate Customer Order",
+    "Perform Credit Check",
+    "Approve Order",
+    "Reject Order",
+    "Schedule Order Fulfillment",
+    "Generate Pick List",
+    "Pack Items",
+    "Generate Shipping Label",
+    "Ship Order",
+    "Generate Invoice",
+    "Apply Discount",
+    "Process Return Request"
+  ],
+  "train_samples": 1400,
+  "val_samples": 300,
+  "test_samples": 300,
+  "test_duration_mae": 6.380156993865967,
+  "test_duration_rmse": 7.62846565246582,
+  "test_duration_r2": 0.9982926249504089,
+  "test_cost_mae": 142.59783935546875,
+  "test_cost_rmse": 192.0044708251953,
+  "test_cost_r2": 0.9982709288597107,
+  "model_architecture": {
+    "layers": 3,
+    "hidden_units": [
+      128,
+      64,
+      32
+    ],
+    "dropout": [
+      0.3,
+      0.3,
+      0.2
+    ]
+  }
+}

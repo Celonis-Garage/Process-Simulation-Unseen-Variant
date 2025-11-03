@@ -1,0 +1,8 @@
+user_id,name,role,department,experience_years,performance_rating,location,shift,email
+U001,Sarah Johnson,Order Manager,Sales Operations,5,4.5,New York,Morning,sarah.johnson@company.com
+U002,Michael Chen,Credit Analyst,Finance,3,4.2,Chicago,Morning,michael.chen@company.com
+U003,Emily Rodriguez,Warehouse Manager,Logistics,7,4.8,Los Angeles,Afternoon,emily.rodriguez@company.com
+U004,David Kumar,Fulfillment Specialist,Logistics,2,3.9,Dallas,Morning,david.kumar@company.com
+U005,Lisa Anderson,Shipping Coordinator,Logistics,4,4.4,Seattle,Afternoon,lisa.anderson@company.com
+U006,James Wilson,Billing Specialist,Finance,6,4.6,Boston,Morning,james.wilson@company.com
+U007,Maria Garcia,Returns Manager,Customer Service,5,4.3,Miami,Afternoon,maria.garcia@company.com

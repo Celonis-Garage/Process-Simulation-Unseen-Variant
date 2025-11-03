@@ -510,3 +510,78 @@ def get_data_loader(data_file_path: str = None) -> RealDataLoader:
         else:
             _data_loader_instance = RealDataLoader()
     return _data_loader_instance
+
+
+# Additional functions for loading enriched datasets
+def load_users_data(data_dir: str = '../data') -> pd.DataFrame:
+    """Load users dataset"""
+    import os
+    users_path = os.path.join(data_dir, 'users.csv')
+    if os.path.exists(users_path):
+        return pd.read_csv(users_path)
+    return pd.DataFrame()
+
+
+def load_items_data(data_dir: str = '../data') -> pd.DataFrame:
+    """Load items dataset"""
+    import os
+    items_path = os.path.join(data_dir, 'items.csv')
+    if os.path.exists(items_path):
+        return pd.read_csv(items_path)
+    return pd.DataFrame()
+
+
+def load_suppliers_data(data_dir: str = '../data') -> pd.DataFrame:
+    """Load suppliers dataset"""
+    import os
+    suppliers_path = os.path.join(data_dir, 'suppliers.csv')
+    if os.path.exists(suppliers_path):
+        return pd.read_csv(suppliers_path)
+    return pd.DataFrame()
+
+
+def load_order_kpis_data(data_dir: str = '../data') -> pd.DataFrame:
+    """Load order KPIs dataset (includes normalized KPIs)"""
+    import os
+    kpis_path = os.path.join(data_dir, 'order_kpis.csv')
+    if os.path.exists(kpis_path):
+        return pd.read_csv(kpis_path)
+    return pd.DataFrame()
+
+
+def load_enriched_orders_data(data_dir: str = '../data') -> pd.DataFrame:
+    """Load enriched orders dataset"""
+    import os
+    orders_path = os.path.join(data_dir, 'orders_enriched.csv')
+    if os.path.exists(orders_path):
+        return pd.read_csv(orders_path)
+    return pd.DataFrame()
+
+
+def get_baseline_kpis_from_data(data_dir: str = '../data') -> Dict[str, float]:
+    """
+    Calculate baseline KPIs from the order_kpis dataset
+    Returns average values for each KPI (denormalized)
+    """
+    df_kpis = load_order_kpis_data(data_dir)
+    
+    if df_kpis.empty:
+        # Default baseline KPIs
+        return {
+            'on_time_delivery': 79.8,
+            'days_sales_outstanding': 38.0,
+            'order_accuracy': 81.3,
+            'invoice_accuracy': 76.5,
+            'avg_cost_delivery': 33.48
+        }
+    
+    # Use original (non-normalized) columns for baseline
+    baseline = {}
+    kpi_columns = ['on_time_delivery', 'days_sales_outstanding', 
+                   'order_accuracy', 'invoice_accuracy', 'avg_cost_delivery']
+    
+    for kpi in kpi_columns:
+        if kpi in df_kpis.columns:
+            baseline[kpi] = float(df_kpis[kpi].mean())
+    
+    return baseline

@@ -1,0 +1,17 @@
+supplier_id,name,location,country,reliability_rating,lead_time_days,product_categories,on_time_delivery_rate,quality_rating
+S001,Global Office Solutions Inc.,"Chicago, IL",USA,4.7,3,"['Office Supplies', 'Furniture']",0.95,4.5
+S002,TechSource Electronics,"San Jose, CA",USA,4.8,5,['Electronics'],0.92,4.7
+S003,Premier Furniture Co.,"Houston, TX",USA,4.5,7,['Furniture'],0.88,4.6
+S004,Pacific Supplies Ltd.,Shanghai,China,4.3,14,"['Office Supplies', 'Accessories']",0.85,4.2
+S005,EuroTech GmbH,Berlin,Germany,4.9,10,"['Electronics', 'Accessories']",0.96,4.8
+S006,National Print Supply,"Atlanta, GA",USA,4.6,2,"['Printing', 'Office Supplies']",0.97,4.4
+S007,Asian Trade Partners,Singapore,Singapore,4.4,12,"['Electronics', 'Accessories']",0.89,4.3
+S008,Metro Storage Systems,"Phoenix, AZ",USA,4.5,4,"['Storage', 'Furniture']",0.91,4.4
+S009,Nordic Furniture AB,Stockholm,Sweden,4.8,15,['Furniture'],0.93,4.9
+S010,Express Office Depot,"Dallas, TX",USA,4.2,1,['Office Supplies'],0.98,4.0
+S011,Quality Electronics Ltd.,Tokyo,Japan,4.9,8,['Electronics'],0.95,4.9
+S012,BulkBuy Wholesale,"Los Angeles, CA",USA,4.1,3,"['Office Supplies', 'Storage']",0.86,3.9
+S013,Premium Tech Solutions,"Austin, TX",USA,4.7,4,"['Electronics', 'Accessories']",0.94,4.6
+S014,Coastal Supplies Inc.,"Miami, FL",USA,4.4,3,"['Office Supplies', 'Printing']",0.9,4.3
+S015,Industrial Furniture Group,"Cleveland, OH",USA,4.6,6,"['Furniture', 'Storage']",0.92,4.5
+S016,SmartSource International,London,UK,4.8,11,"['Electronics', 'Office Supplies']",0.94,4.7

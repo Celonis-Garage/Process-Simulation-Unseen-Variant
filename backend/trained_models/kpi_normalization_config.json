@@ -1,0 +1,7 @@
+{
+  "on_time_delivery": "value / 100",
+  "days_sales_outstanding": "value / 90",
+  "order_accuracy": "value / 100",
+  "invoice_accuracy": "value / 100",
+  "avg_cost_delivery": "value / 100"
+}

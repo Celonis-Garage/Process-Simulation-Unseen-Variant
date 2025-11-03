@@ -58,20 +58,33 @@ virtualenv/
 *.sqlite
 *.sqlite3
 
-# Data files
-data/
-datasets/
-*.csv
+# Data files (ignore most, allow essential ones)
+# Allow essential data files for the project
+!data/
+!data/*.xml
+!data/*.csv
+!data/*.json
+# But ignore large temporary data
+data/temp/
+data/cache/
+data/raw/
+data/processed/
+data/*_backup.*
+data/*_temp.*
+
+# Document formats (large files)
 *.xlsx
 *.xls
-*.json
-!package.json
-!package-lock.json
-!tsconfig.json
 *.parquet
 *.feather
 *.h5
 *.hdf5
+
+# Config files (allow these)
+!package.json
+!package-lock.json
+!tsconfig.json
+!requirements.txt
 
 # Logs
 logs/
@@ -81,6 +94,8 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+backend.log
+frontend.log
 
 # Testing
 .pytest_cache/
@@ -139,7 +154,6 @@ temp/
 *.temp
 *.swp
 *.swo
-*~
 
 # Compressed files
 *.zip
@@ -152,7 +166,8 @@ temp/
 *.jar
 *.rar
 *.tar
-*.zip
+# Exclude the clickable prototype zip if present
+Clickable*.zip
 
 # Backup files
 *.bak
@@ -174,15 +189,14 @@ credentials/
 *.p12
 *.pfx
 
-# ML Models (uncomment if needed)
-# *.pkl
-# *.pickle
-# *.pt
-# *.pth
-# *.h5
-# *.onnx
-# models/
-# checkpoints/
+# ML Models (trained models should be included, but not checkpoints)
+*.pkl.temp
+*.pickle.temp
+checkpoints/
+# Allow the trained models directory
+!backend/trained_models/
+backend/trained_models/*.temp
+backend/trained_models/backup/
 
 # IDEs and Editors
 *.sublime-project
@@ -208,3 +222,5 @@ results/
 *.out
 *.pid
 
+# Test artifacts
+/tmp/test_*.json

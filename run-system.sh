@@ -29,26 +29,64 @@ echo ""
 echo "🔧 Setting up backend..."
 cd backend
 
-# Create and activate virtual environment
+# Get absolute paths
+BACKEND_DIR="$(pwd)"
+VENV_PYTHON="$BACKEND_DIR/venv/bin/python"
+VENV_PIP="$BACKEND_DIR/venv/bin/pip"
+VENV_UVICORN="$BACKEND_DIR/venv/bin/uvicorn"
+
+# Create virtual environment if it doesn't exist
 if [ ! -d "venv" ]; then
     echo "Creating Python virtual environment..."
     python3 -m venv venv
 fi
 
-echo "Activating virtual environment..."
-source venv/bin/activate
-
 echo "Installing/updating Python dependencies..."
-pip install --upgrade pip
-pip install -r requirements.txt
+$VENV_PIP install --upgrade pip
+$VENV_PIP install -r requirements.txt
 
 # Set GROQ API KEY for LLM service
 echo "🤖 Setting up LLM service with Groq API..."
-export GROQ_API_KEY="Your API Key Here"
+export GROQ_API_KEY="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"
 
+# Check if ML model exists, train if needed
+echo ""
+echo "🤖 Checking ML model for KPI prediction..."
+if [ ! -f "trained_models/kpi_prediction_model.keras" ]; then
+    echo "⚠️  ML model not found in trained_models/"
+    
+    # Check if data files exist
+    if [ -f "../data/order_kpis.csv" ] && [ -f "../data/users.csv" ] && [ -f "../data/items.csv" ]; then
+        echo "✓ Data files found - training model..."
+        echo "This will take 5-10 minutes depending on your CPU."
+        echo "Training progress will be displayed below:"
+        echo "─────────────────────────────────────────────────────"
+        
+        $VENV_PYTHON train_model.py
+        
+        if [ $? -eq 0 ]; then
+            echo "─────────────────────────────────────────────────────"
+            echo "✅ Model training completed successfully!"
+        else
+            echo "─────────────────────────────────────────────────────"
+            echo "❌ Model training failed. Backend will use rule-based predictions."
+            echo "   Check the error messages above for details."
+            echo "   You can manually train by running: cd backend && python train_model.py"
+        fi
+    else
+        echo "⚠️  Required data files not found in data/ directory"
+        echo "   Missing files: users.csv, items.csv, suppliers.csv, order_kpis.csv"
+        echo "   To enable ML predictions, run the Jupyter notebook (cells 41-45)"
+        echo "   Backend will start with rule-based predictions only."
+    fi
+else
+    echo "✅ ML model found - predictions enabled"
+fi
+
+echo ""
 echo "🚀 Starting backend server..."
 echo "Backend will be available at: http://localhost:8000"
-uvicorn main:app --reload --host 0.0.0.0 --port 8000 > backend.log 2>&1 &
+$VENV_UVICORN main:app --reload --host 0.0.0.0 --port 8000 > backend.log 2>&1 &
 BACKEND_PID=$!
 
 # Wait for backend to start

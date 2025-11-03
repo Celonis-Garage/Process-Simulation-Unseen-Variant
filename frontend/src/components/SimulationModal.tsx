@@ -2,20 +2,7 @@ import React from 'react';
 import { X, TrendingUp, TrendingDown, ArrowRight, CheckCircle2, Info } from 'lucide-react';
 import { Progress } from './ui/progress';
 import { Badge } from './ui/badge';
-
-interface SimulationResult {
-  cycle_time_change: number;
-  cost_change: number;
-  revenue_impact: number;
-  confidence: number;
-  summary: string;
-  cycle_time_hours: number;
-  cycle_time_days: number;
-  cost_dollars: number;
-  baseline_cycle_time_hours: number;
-  baseline_cycle_time_days: number;
-  baseline_cost_dollars: number;
-}
+import { SimulationResult } from '../types';
 
 interface SimulationModalProps {
   isOpen: boolean;
@@ -28,59 +15,82 @@ export function SimulationModal({ isOpen, onClose, simulationResults, variantNam
   if (!isOpen || !simulationResults) return null;
 
   const {
-    cycle_time_change,
-    cost_change,
-    revenue_impact,
+    baseline_on_time_delivery,
+    baseline_days_sales_outstanding,
+    baseline_order_accuracy,
+    baseline_invoice_accuracy,
+    baseline_avg_cost_delivery,
+    on_time_delivery,
+    days_sales_outstanding,
+    order_accuracy,
+    invoice_accuracy,
+    avg_cost_delivery,
     confidence,
-    summary,
-    cycle_time_hours,
-    cycle_time_days,
-    cost_dollars,
-    baseline_cycle_time_hours,
-    baseline_cycle_time_days,
-    baseline_cost_dollars
+    summary
   } = simulationResults;
 
-  // Convert decimal changes to percentages
-  const cycleTimePercent = cycle_time_change * 100;
-  const costPercent = cost_change * 100;
-  const revenuePercent = revenue_impact * 100;
   const confidencePercent = confidence * 100;
 
+  // Calculate percentage changes for each KPI
+  const otdChange = ((on_time_delivery - baseline_on_time_delivery) / baseline_on_time_delivery) * 100;
+  const dsoChange = ((days_sales_outstanding - baseline_days_sales_outstanding) / baseline_days_sales_outstanding) * 100;
+  const orderAccChange = ((order_accuracy - baseline_order_accuracy) / baseline_order_accuracy) * 100;
+  const invoiceAccChange = ((invoice_accuracy - baseline_invoice_accuracy) / baseline_invoice_accuracy) * 100;
+  const costChange = ((avg_cost_delivery - baseline_avg_cost_delivery) / baseline_avg_cost_delivery) * 100;
+
   // Detect if this is baseline (unchanged process)
-  const isBaseline = Math.abs(cycleTimePercent) < 0.1 && Math.abs(costPercent) < 0.1;
+  const isBaseline = Math.abs(otdChange) < 0.5 && Math.abs(dsoChange) < 0.5 && Math.abs(costChange) < 0.5;
 
   const kpiData = [
     {
-      name: 'Cycle Time',
-      before: baseline_cycle_time_days >= 1 
-        ? `${baseline_cycle_time_days.toFixed(1)} days`
-        : `${baseline_cycle_time_hours.toFixed(1)}h`,
-      after: cycle_time_days >= 1 
-        ? `${cycle_time_days.toFixed(1)} days`
-        : `${cycle_time_hours.toFixed(1)}h`,
-      change: cycleTimePercent > 0 ? `+${Math.abs(cycleTimePercent).toFixed(1)}%` : cycleTimePercent < 0 ? `-${Math.abs(cycleTimePercent).toFixed(1)}%` : '0%',
-      trend: cycleTimePercent < -0.1 ? 'down' : cycleTimePercent > 0.1 ? 'up' : 'neutral',
-      color: cycleTimePercent < -0.1 ? 'text-green-600' : cycleTimePercent > 0.1 ? 'text-orange-600' : 'text-gray-600',
-      bgColor: cycleTimePercent < -0.1 ? 'bg-green-50' : cycleTimePercent > 0.1 ? 'bg-orange-50' : 'bg-gray-50'
+      name: 'On-Time Delivery',
+      before: `${baseline_on_time_delivery.toFixed(1)}%`,
+      after: `${on_time_delivery.toFixed(1)}%`,
+      change: otdChange > 0 ? `+${Math.abs(otdChange).toFixed(1)}%` : otdChange < 0 ? `-${Math.abs(otdChange).toFixed(1)}%` : '0%',
+      trend: otdChange > 0.5 ? 'up' : otdChange < -0.5 ? 'down' : 'neutral',
+      color: otdChange > 0.5 ? 'text-green-600' : otdChange < -0.5 ? 'text-orange-600' : 'text-gray-600',
+      bgColor: otdChange > 0.5 ? 'bg-green-50' : otdChange < -0.5 ? 'bg-orange-50' : 'bg-gray-50',
+      description: 'Percentage of orders delivered on time'
     },
     {
-      name: 'Total Cost',
-      before: `$${baseline_cost_dollars.toFixed(2)}`,
-      after: `$${cost_dollars.toFixed(2)}`,
-      change: costPercent > 0 ? `+${Math.abs(costPercent).toFixed(1)}%` : costPercent < 0 ? `-${Math.abs(costPercent).toFixed(1)}%` : '0%',
-      trend: costPercent < -0.1 ? 'down' : costPercent > 0.1 ? 'up' : 'neutral',
-      color: costPercent < -0.1 ? 'text-green-600' : costPercent > 0.1 ? 'text-orange-600' : 'text-gray-600',
-      bgColor: costPercent < -0.1 ? 'bg-green-50' : costPercent > 0.1 ? 'bg-orange-50' : 'bg-gray-50'
+      name: 'Days Sales Outstanding',
+      before: `${baseline_days_sales_outstanding.toFixed(0)} days`,
+      after: `${days_sales_outstanding.toFixed(0)} days`,
+      change: dsoChange < 0 ? `-${Math.abs(dsoChange).toFixed(1)}%` : dsoChange > 0 ? `+${Math.abs(dsoChange).toFixed(1)}%` : '0%',
+      trend: dsoChange < -0.5 ? 'down' : dsoChange > 0.5 ? 'up' : 'neutral',
+      color: dsoChange < -0.5 ? 'text-green-600' : dsoChange > 0.5 ? 'text-orange-600' : 'text-gray-600',
+      bgColor: dsoChange < -0.5 ? 'bg-green-50' : dsoChange > 0.5 ? 'bg-orange-50' : 'bg-gray-50',
+      description: 'Average time to collect payment'
     },
     {
-      name: 'Revenue Impact',
-      before: '0%',
-      after: revenuePercent > 0 ? `+${Math.abs(revenuePercent).toFixed(1)}%` : revenuePercent < 0 ? `-${Math.abs(revenuePercent).toFixed(1)}%` : '0%',
-      change: revenuePercent > 0 ? `+${Math.abs(revenuePercent).toFixed(1)}%` : revenuePercent < 0 ? `-${Math.abs(revenuePercent).toFixed(1)}%` : '0%',
-      trend: revenuePercent > 0.1 ? 'up' : revenuePercent < -0.1 ? 'down' : 'neutral',
-      color: revenuePercent > 0.1 ? 'text-green-600' : revenuePercent < -0.1 ? 'text-orange-600' : 'text-gray-600',
-      bgColor: revenuePercent > 0.1 ? 'bg-green-50' : revenuePercent < -0.1 ? 'bg-orange-50' : 'bg-gray-50'
+      name: 'Order Accuracy',
+      before: `${baseline_order_accuracy.toFixed(1)}%`,
+      after: `${order_accuracy.toFixed(1)}%`,
+      change: orderAccChange > 0 ? `+${Math.abs(orderAccChange).toFixed(1)}%` : orderAccChange < 0 ? `-${Math.abs(orderAccChange).toFixed(1)}%` : '0%',
+      trend: orderAccChange > 0.5 ? 'up' : orderAccChange < -0.5 ? 'down' : 'neutral',
+      color: orderAccChange > 0.5 ? 'text-green-600' : orderAccChange < -0.5 ? 'text-orange-600' : 'text-gray-600',
+      bgColor: orderAccChange > 0.5 ? 'bg-green-50' : orderAccChange < -0.5 ? 'bg-orange-50' : 'bg-gray-50',
+      description: 'Order fulfillment accuracy rate'
+    },
+    {
+      name: 'Invoice Accuracy',
+      before: `${baseline_invoice_accuracy.toFixed(1)}%`,
+      after: `${invoice_accuracy.toFixed(1)}%`,
+      change: invoiceAccChange > 0 ? `+${Math.abs(invoiceAccChange).toFixed(1)}%` : invoiceAccChange < 0 ? `-${Math.abs(invoiceAccChange).toFixed(1)}%` : '0%',
+      trend: invoiceAccChange > 0.5 ? 'up' : invoiceAccChange < -0.5 ? 'down' : 'neutral',
+      color: invoiceAccChange > 0.5 ? 'text-green-600' : invoiceAccChange < -0.5 ? 'text-orange-600' : 'text-gray-600',
+      bgColor: invoiceAccChange > 0.5 ? 'bg-green-50' : invoiceAccChange < -0.5 ? 'bg-orange-50' : 'bg-gray-50',
+      description: 'Invoicing accuracy and correctness'
+    },
+    {
+      name: 'Avg Cost of Delivery',
+      before: `$${baseline_avg_cost_delivery.toFixed(2)}`,
+      after: `$${avg_cost_delivery.toFixed(2)}`,
+      change: costChange < 0 ? `-${Math.abs(costChange).toFixed(1)}%` : costChange > 0 ? `+${Math.abs(costChange).toFixed(1)}%` : '0%',
+      trend: costChange < -0.5 ? 'down' : costChange > 0.5 ? 'up' : 'neutral',
+      color: costChange < -0.5 ? 'text-green-600' : costChange > 0.5 ? 'text-orange-600' : 'text-gray-600',
+      bgColor: costChange < -0.5 ? 'bg-green-50' : costChange > 0.5 ? 'bg-orange-50' : 'bg-gray-50',
+      description: 'Average cost per order delivery'
     }
   ];
 
@@ -115,19 +125,22 @@ export function SimulationModal({ isOpen, onClose, simulationResults, variantNam
         {/* Scrollable Content */}
         <div className="flex-1 overflow-auto">
           <div className="p-6 space-y-6">
-            {/* 1. KPI Comparisons - Figma Design */}
+            {/* 1. KPI Comparisons - 5 KPIs Display */}
             <div>
               <h3 className="text-gray-900 mb-4">Key Performance Indicators</h3>
               <div className="grid grid-cols-2 gap-4">
-                {kpiData.map((kpi, index) => (
+                {kpiData.slice(0, 4).map((kpi, index) => (
                   <div
                     key={index}
                     className={`${kpi.bgColor} border-2 ${kpi.bgColor.replace('bg-', 'border-').replace('-50', '-200')} rounded-lg p-4`}
                   >
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-sm text-gray-700">{kpi.name}</span>
+                    <div className="flex items-center justify-between mb-2">
+                      <div>
+                        <span className="text-sm font-medium text-gray-700">{kpi.name}</span>
+                        <p className="text-xs text-gray-500 mt-0.5">{kpi.description}</p>
+                      </div>
                       {kpi.trend !== 'neutral' && (
-                        <Badge className={`${kpi.color} bg-white`}>
+                        <Badge className={`${kpi.color} bg-white flex-shrink-0`}>
                           {kpi.trend === 'up' ? (
                             <TrendingUp className="w-3 h-3 mr-1" />
                           ) : (
@@ -138,9 +151,40 @@ export function SimulationModal({ isOpen, onClose, simulationResults, variantNam
                       )}
                     </div>
                     <div className="flex items-center gap-2 text-sm">
-                      <span className="text-gray-600">{kpi.before}</span>
+                      <span className="text-gray-600 font-medium">{kpi.before}</span>
                       <ArrowRight className="w-4 h-4 text-gray-400" />
-                      <span className={kpi.color}>{kpi.after}</span>
+                      <span className={`${kpi.color} font-semibold`}>{kpi.after}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {/* 5th KPI - Full Width */}
+              <div className="mt-4">
+                {kpiData.slice(4).map((kpi, index) => (
+                  <div
+                    key={index + 4}
+                    className={`${kpi.bgColor} border-2 ${kpi.bgColor.replace('bg-', 'border-').replace('-50', '-200')} rounded-lg p-4`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div>
+                        <span className="text-sm font-medium text-gray-700">{kpi.name}</span>
+                        <p className="text-xs text-gray-500 mt-0.5">{kpi.description}</p>
+                      </div>
+                      {kpi.trend !== 'neutral' && (
+                        <Badge className={`${kpi.color} bg-white flex-shrink-0`}>
+                          {kpi.trend === 'up' ? (
+                            <TrendingUp className="w-3 h-3 mr-1" />
+                          ) : (
+                            <TrendingDown className="w-3 h-3 mr-1" />
+                          )}
+                          {kpi.change}
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="text-gray-600 font-medium">{kpi.before}</span>
+                      <ArrowRight className="w-4 h-4 text-gray-400" />
+                      <span className={`${kpi.color} font-semibold`}>{kpi.after}</span>
                     </div>
                   </div>
                 ))}
@@ -166,23 +210,14 @@ export function SimulationModal({ isOpen, onClose, simulationResults, variantNam
                 <div>
                   <h3 className="text-gray-900 mb-2">Summary</h3>
                   <p className="text-sm text-gray-700 leading-relaxed">
-                    {isBaseline ? (
-                      <>
-                        This is the baseline process configuration from your data. 
-                        Current performance: {baseline_cycle_time_days.toFixed(1)} days cycle time 
-                        and ${baseline_cost_dollars.toFixed(2)} per order cost. 
-                        This variant serves as the reference point for comparing future process modifications.
-                      </>
-                    ) : (
-                      <>{summary}</>
-                    )}
+                    {summary}
                   </p>
                 </div>
               </div>
             </div>
 
             {/* 4. Explanation Section - Only show if not baseline */}
-            {!isBaseline && (cycleTimePercent !== 0 || costPercent !== 0) && (
+            {!isBaseline && (
               <div className="border border-gray-200 rounded-lg p-5 bg-white">
                 <div className="flex items-start gap-3 mb-4">
                   <Info className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
@@ -195,32 +230,64 @@ export function SimulationModal({ isOpen, onClose, simulationResults, variantNam
                 </div>
                 
                 <div className="space-y-3 ml-8">
-                  {Math.abs(cycleTimePercent) > 0.1 && (
+                  {Math.abs(otdChange) > 0.5 && (
                     <div className="flex gap-3">
-                      <div className={`w-1.5 h-1.5 ${cycleTimePercent < 0 ? 'bg-green-600' : 'bg-orange-600'} rounded-full mt-2 flex-shrink-0`}></div>
+                      <div className={`w-1.5 h-1.5 ${otdChange > 0 ? 'bg-green-600' : 'bg-orange-600'} rounded-full mt-2 flex-shrink-0`}></div>
                       <div>
-                        <p className="text-sm text-gray-900">Cycle Time {cycleTimePercent < 0 ? 'Improvement' : 'Increase'}</p>
+                        <p className="text-sm text-gray-900">On-Time Delivery {otdChange > 0 ? 'Improvement' : 'Decline'}</p>
                         <p className="text-xs text-gray-600 mt-1">
-                          {cycleTimePercent < 0 ? (
-                            <>Streamlining the process reduces overall cycle time, enabling faster order processing and more timely deliveries. Fewer handoffs mean less coordination overhead and fewer delays.</>
+                          {otdChange > 0 ? (
+                            <>Process optimization reduced cycle time, enabling faster order processing and more timely deliveries. Fewer bottlenecks mean better adherence to delivery schedules.</>
                           ) : (
-                            <>Additional process steps increase overall cycle time, potentially delaying shipments and affecting delivery schedules.</>
+                            <>Additional process steps or longer activity times may delay shipments, affecting delivery schedules and customer satisfaction.</>
                           )}
                         </p>
                       </div>
                     </div>
                   )}
 
-                  {Math.abs(costPercent) > 0.1 && (
+                  {Math.abs(dsoChange) > 0.5 && (
                     <div className="flex gap-3">
-                      <div className={`w-1.5 h-1.5 ${costPercent < 0 ? 'bg-green-600' : 'bg-orange-600'} rounded-full mt-2 flex-shrink-0`}></div>
+                      <div className={`w-1.5 h-1.5 ${dsoChange < 0 ? 'bg-green-600' : 'bg-orange-600'} rounded-full mt-2 flex-shrink-0`}></div>
                       <div>
-                        <p className="text-sm text-gray-900">Cost {costPercent < 0 ? 'Reduction' : 'Increase'}</p>
+                        <p className="text-sm text-gray-900">Days Sales Outstanding {dsoChange < 0 ? 'Improvement' : 'Increase'}</p>
                         <p className="text-xs text-gray-600 mt-1">
-                          {costPercent < 0 ? (
-                            <>Process optimization reduces per-order costs by ${Math.abs(cost_dollars - baseline_cost_dollars).toFixed(2)}, improving overall efficiency.</>
+                          {dsoChange < 0 ? (
+                            <>Faster process execution reduces the time between order fulfillment and payment collection, improving cash flow by {Math.abs(dsoChange).toFixed(0)}%.</>
                           ) : (
-                            <>Additional processing adds ${Math.abs(cost_dollars - baseline_cost_dollars).toFixed(2)} per order. However, this may prevent costly downstream rework and errors, potentially yielding positive ROI over time.</>
+                            <>Longer cycle times delay invoicing and payment collection, potentially impacting working capital by {Math.abs(dsoChange).toFixed(0)}%.</>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {Math.abs(invoiceAccChange) > 0.5 && (
+                    <div className="flex gap-3">
+                      <div className={`w-1.5 h-1.5 ${invoiceAccChange > 0 ? 'bg-green-600' : 'bg-orange-600'} rounded-full mt-2 flex-shrink-0`}></div>
+                      <div>
+                        <p className="text-sm text-gray-900">Invoice Accuracy {invoiceAccChange > 0 ? 'Improvement' : 'Decline'}</p>
+                        <p className="text-xs text-gray-600 mt-1">
+                          {invoiceAccChange > 0 ? (
+                            <>Adding validation and quality checks improves invoicing accuracy, reducing disputes and payment delays.</>
+                          ) : (
+                            <>Removing validation steps may increase invoicing errors, leading to more disputes and rework.</>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {Math.abs(costChange) > 0.5 && (
+                    <div className="flex gap-3">
+                      <div className={`w-1.5 h-1.5 ${costChange < 0 ? 'bg-green-600' : 'bg-orange-600'} rounded-full mt-2 flex-shrink-0`}></div>
+                      <div>
+                        <p className="text-sm text-gray-900">Delivery Cost {costChange < 0 ? 'Reduction' : 'Increase'}</p>
+                        <p className="text-xs text-gray-600 mt-1">
+                          {costChange < 0 ? (
+                            <>Process optimization reduces per-order costs by ${Math.abs(avg_cost_delivery - baseline_avg_cost_delivery).toFixed(2)}, improving overall efficiency and profit margins.</>
+                          ) : (
+                            <>Additional processing adds ${Math.abs(avg_cost_delivery - baseline_avg_cost_delivery).toFixed(2)} per order. However, this may prevent costly downstream errors and rework, potentially yielding positive ROI over time.</>
                           )}
                         </p>
                       </div>
@@ -246,7 +313,7 @@ export function SimulationModal({ isOpen, onClose, simulationResults, variantNam
                     <div className="flex items-start gap-2">
                       <span className="text-amber-700">•</span>
                       <p>
-                        <span className="text-gray-900">Real KPIs:</span> Cycle times and costs derived from actual event log data, not estimates.
+                        <span className="text-gray-900">Real KPIs:</span> On-time delivery, DSO, accuracy metrics, and costs derived from actual event log data, not estimates.
                       </p>
                     </div>
                     <div className="flex items-start gap-2">

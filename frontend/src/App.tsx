@@ -155,6 +155,7 @@ const generateEventLogsFromSteps = (steps: ProcessStep[]): EventLog[] => {
 export interface KPIData {
   onTimeDelivery: number; // percentage
   orderAccuracy: number; // percentage
+  invoiceAccuracy: number; // percentage
   dso: number; // days
   costOfDelivery: number; // dollars
   totalCost: number;
@@ -213,12 +214,14 @@ const calculateKPIs = (eventLogs: EventLog[], steps: ProcessStep[]): KPIData => 
   const baseStepCount = 12; // excluding start/end
   const baseCycleTimeDays = 4.125; // actual cycle time from initial steps
   const baseOTD = 76.8;
-  const baseAccuracy = 81.3;
+  const baseOrderAccuracy = 81.3;
+  const baseInvoiceAccuracy = 76.5;
   const baseDSO = 42;
 
-  // Calculate improvements - only affects OTD and DSO, never accuracy
+  // Calculate improvements - OTD and DSO affected by cycle time
   let otdImprovement = 0;
   let dsoChange = 0;
+  let invoiceAccuracyImprovement = 0;
 
   // Process optimization improvements
   // Removing bottleneck steps improves OTD and DSO only
@@ -240,9 +243,18 @@ const calculateKPIs = (eventLogs: EventLog[], steps: ProcessStep[]): KPIData => 
     dsoChange -= Math.floor(cycleTimeReduction * 2);
   }
   
+  // Invoice accuracy improves with validation/quality steps
+  if (hasValidation || hasQuality) {
+    invoiceAccuracyImprovement += 3;
+  }
+  if (hasCompliance || hasFraud) {
+    invoiceAccuracyImprovement += 2;
+  }
+  
   return {
     onTimeDelivery: Math.min(99, Math.max(70, baseOTD + otdImprovement)),
-    orderAccuracy: baseAccuracy, // Always stays the same at 81.3% for base case
+    orderAccuracy: baseOrderAccuracy, // Always stays the same at 81.3% for base case
+    invoiceAccuracy: Math.min(99, Math.max(65, baseInvoiceAccuracy + invoiceAccuracyImprovement)),
     dso: Math.max(30, baseDSO + dsoChange),
     costOfDelivery: totalCost,
     totalCost,
@@ -644,55 +656,63 @@ export default function App() {
     try {
       setIsSimulating(true);
       
-      // Build process graph from current steps
+      // Build activities list from steps (excluding start/end)
       const activities = steps
-        .filter(s => s.id !== 'start' && s.id !== 'end')
-        .map(s => s.name);
+        .filter(step => step.id !== 'start' && step.id !== 'end')
+        .map(step => step.name);
       
-      const graphEdges = edges.map((e, idx) => ({
-        id: e.id || `edge-${idx}`,
-        from: steps.find(s => s.id === e.from)?.name || '',
-        to: steps.find(s => s.id === e.to)?.name || '',
-        cases: e.cases || 0,
-        avgDays: e.avgDays || 0
-      })).filter(e => e.from && e.to && e.from !== 'Start' && e.from !== 'End' && e.to !== 'Start' && e.to !== 'End');
-      
-      const kpis: any = {};
-      steps.filter(s => s.id !== 'start' && s.id !== 'end').forEach(s => {
-        const timeMatch = s.avgTime.match(/(\d+\.?\d*)([hdm])/);
-        const costMatch = s.avgCost.match(/\$?([\d.]+)/);
-        
-        let timeInHours = 1.0;
-        if (timeMatch) {
-          const value = parseFloat(timeMatch[1]);
-          const unit = timeMatch[2];
-          if (unit === 'h') timeInHours = value;
-          else if (unit === 'd') timeInHours = value * 24;
-          else if (unit === 'm') timeInHours = value / 60;
-        }
-        
-        kpis[s.name] = {
-          avg_time: timeInHours,
-          cost: costMatch ? parseFloat(costMatch[1]) : 50
-        };
-      });
-      
-      // Format event logs for backend
-      const formattedEventLogs = eventLogs.map(log => ({
-        'Case ID': log.caseId,
-        'Activity': log.activity,
-        'Timestamp': log.timestamp,
-        'Throughput Time': parseFloat(log.throughputTime.replace(/[^0-9.]/g, '')) || 0,
-        'Cost': parseFloat(log.cost.replace(/[^0-9.]/g, '')) || 0
+      // Build edges array (simplified format for API)
+      const processEdges = edges.map(edge => ({
+        id: edge.id || `edge-${edge.from}-${edge.to}`,
+        from: edge.from,
+        to: edge.to
       }));
       
-      const result = await simulateProcess(formattedEventLogs, {
-        activities,
-        edges: graphEdges,
-        kpis
+      // Build KPIs object from steps
+      const kpisMap: Record<string, { avg_time: number; cost: number }> = {};
+      steps.forEach(step => {
+        if (step.id !== 'start' && step.id !== 'end') {
+          // Parse time from avgTime string (e.g., "2h" -> 2)
+          let avgTime = 1.0;
+          if (step.avgTime && step.avgTime !== '-') {
+            const timeMatch = step.avgTime.match(/(\d+\.?\d*)/);
+            if (timeMatch) {
+              avgTime = parseFloat(timeMatch[1]);
+              if (step.avgTime.includes('m')) avgTime /= 60; // Convert minutes to hours
+              if (step.avgTime.includes('d')) avgTime *= 24; // Convert days to hours
+            }
+          }
+          
+          // Parse cost from avgCost string (e.g., "$50.00" -> 50)
+          let cost = 50.0;
+          if (step.avgCost && step.avgCost !== '-') {
+            const costMatch = step.avgCost.match(/\$?(\d+\.?\d*)/);
+            if (costMatch) {
+              cost = parseFloat(costMatch[1]);
+            }
+          }
+          
+          kpisMap[step.name] = { avg_time: avgTime, cost };
+        }
       });
       
-      console.log('Simulation results:', result);
+      // Build ProcessGraph object for API
+      const processGraph: ProcessGraph = {
+        activities,
+        edges: processEdges,
+        kpis: kpisMap
+      };
+      
+      console.log('Calling backend ML simulation with:', {
+        activities,
+        edges: processEdges.length,
+        kpis: Object.keys(kpisMap).length
+      });
+      
+      // Call backend API for ML-based simulation
+      const result = await simulateProcess(eventLogs, processGraph);
+      
+      console.log('🤖 ML-based simulation results:', result);
       setSimulationResults(result);
       setIsSimulationOpen(true);
       setIsSimulating(false);
@@ -701,7 +721,7 @@ export default function App() {
       setIsSimulating(false);
       setMessages(prev => [...prev, {
         type: 'ai',
-        text: `⚠️ Simulation failed: ${error.message}`
+        text: `⚠️ Simulation failed: ${error.message}. Make sure the backend is running.`
       }]);
     }
   };

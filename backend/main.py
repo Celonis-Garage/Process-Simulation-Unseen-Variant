@@ -6,11 +6,19 @@ import pandas as pd
 import os
 import logging
 import traceback
+from pathlib import Path
 
 from simulation_engine import SimulationEngine
-from real_data_loader import get_data_loader
+from real_data_loader import get_data_loader, get_baseline_kpis_from_data
 from utils import parse_prompt_mock, graph_to_networkx
 from llm_service import GroqLLMService
+from ml_model import ModelManager
+from scenario_generator import ScenarioGenerator
+from feature_extraction import (
+    extract_features_from_scenario,
+    enrich_edges_with_durations,
+    parse_activity_duration
+)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -59,24 +67,36 @@ class PromptResponse(BaseModel):
     suggestions: Optional[List[str]] = None  # Suggestions for clarification
 
 class SimulationResponse(BaseModel):
-    cycle_time_change: float
-    cost_change: float
-    revenue_impact: float
+    # Baseline KPIs (before changes)
+    baseline_on_time_delivery: float
+    baseline_days_sales_outstanding: float
+    baseline_order_accuracy: float
+    baseline_invoice_accuracy: float
+    baseline_avg_cost_delivery: float
+    
+    # Current KPIs (after changes)
+    on_time_delivery: float
+    days_sales_outstanding: float
+    order_accuracy: float
+    invoice_accuracy: float
+    avg_cost_delivery: float
+    
+    # Metadata
     confidence: float
     summary: str
-    # Absolute KPI values
-    cycle_time_hours: float
-    cycle_time_days: float
-    cost_dollars: float
-    baseline_cycle_time_hours: float
-    baseline_cycle_time_days: float
-    baseline_cost_dollars: float
 
 # Initialize
 simulation_engine = SimulationEngine()
 current_dir = os.path.dirname(os.path.abspath(__file__))
-data_file_path = os.path.join(current_dir, '..', 'data', 'o2c_data_orders_only.xml')
+backend_dir = Path(current_dir)
+data_dir = backend_dir.parent / 'data'
+data_file_path = str(data_dir / 'o2c_data_orders_only.xml')
 data_loader = get_data_loader(data_file_path)
+
+# Initialize ML model manager and scenario generator
+model_manager: Optional[ModelManager] = None
+scenario_generator: Optional[ScenarioGenerator] = None
+use_ml_predictions = False  # Flag to indicate if ML model is available
 
 # Initialize LLM service
 try:
@@ -86,6 +106,80 @@ except Exception as e:
     logger.warning(f"⚠️ LLM Service initialization failed: {e}")
     logger.warning("⚠️ Falling back to regex-based parser")
     llm_service = None
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize ML model and scenario generator at startup"""
+    global model_manager, scenario_generator, use_ml_predictions
+    
+    logger.info("="*80)
+    logger.info("🚀 BACKEND STARTUP - Initializing ML Model")
+    logger.info("="*80)
+    
+    try:
+        # Create trained_models directory if it doesn't exist
+        models_dir = backend_dir / 'trained_models'
+        models_dir.mkdir(exist_ok=True)
+        logger.info(f"✓ Models directory ready: {models_dir}")
+        
+        # Check if model and data files exist
+        model_file = models_dir / 'kpi_prediction_model.keras'
+        data_files_exist = all([
+            (data_dir / f).exists() for f in [
+                'users.csv', 'items.csv', 'suppliers.csv', 
+                'order_kpis.csv', 'orders_enriched.csv'
+            ]
+        ])
+        
+        if model_file.exists() and data_files_exist:
+            logger.info("✓ Model and data files found - initializing ML prediction system...")
+            
+            # Initialize Model Manager
+            model_manager = ModelManager(backend_dir)
+            try:
+                model_manager.initialize(force_retrain=False)
+                logger.info("✅ ML Model loaded successfully")
+                
+                # Initialize Scenario Generator
+                scenario_generator = ScenarioGenerator(data_dir)
+                logger.info("✅ Scenario Generator initialized")
+                
+                use_ml_predictions = True
+                logger.info("✅ ML-BASED KPI PREDICTION ENABLED")
+            except NotImplementedError:
+                logger.warning("⚠️ Model training not yet implemented - using cached model if available")
+                # Try to load cached model directly
+                if model_file.exists():
+                    try:
+                        from ml_model import load_model_and_scalers
+                        model_manager.model, model_manager.scalers = load_model_and_scalers(models_dir)
+                        model_manager.baseline_kpis = get_baseline_kpis_from_data(str(data_dir))
+                        scenario_generator = ScenarioGenerator(data_dir)
+                        use_ml_predictions = True
+                        logger.info("✅ ML Model loaded from cache (training skipped)")
+                    except Exception as e2:
+                        logger.error(f"Failed to load cached model: {e2}")
+                        use_ml_predictions = False
+        else:
+            logger.warning("⚠️ Model or data files not found")
+            logger.warning("   Missing files - ML predictions will not be available")
+            logger.warning("   Please run the Jupyter notebook to generate required files")
+            use_ml_predictions = False
+            
+    except Exception as e:
+        logger.error(f"❌ ML Model initialization failed: {e}")
+        logger.error(traceback.format_exc())
+        logger.warning("⚠️ Falling back to rule-based KPI calculation")
+        use_ml_predictions = False
+    
+    logger.info("="*80)
+    if use_ml_predictions:
+        logger.info("✅ BACKEND READY - ML predictions enabled")
+    else:
+        logger.info("⚠️ BACKEND READY - Using rule-based predictions")
+    logger.info("="*80)
+
 
 @app.get("/")
 async def root():
@@ -247,34 +341,144 @@ async def simulate_process(request: SimulationRequest):
     try:
         logger.info("📊 Simulation request received")
         logger.debug(f"   Activities: {request.graph.activities}")
-        logger.debug(f"   Event log entries: {len(request.event_log)}")
+        logger.debug(f"   Edges: {len(request.graph.edges)} edges")
         logger.debug(f"   Custom KPIs received: {request.graph.kpis}")
         
-        nx_graph = graph_to_networkx(request.graph)
-        df = pd.DataFrame(request.event_log)
-        
-        logger.debug(f"   Event log columns: {df.columns.tolist()}")
-        logger.debug(f"   Event log shape: {df.shape}")
-        
-        # Use custom KPIs from frontend (user-modified values)
-        # These override the dataset KPIs
-        custom_kpis = request.graph.kpis
-        
-        # Get dataset KPIs as fallback for activities not modified by user
-        activities = request.graph.activities
-        dataset_kpis = data_loader.get_event_kpis_for_activities(activities)
-        
-        # Merge: custom KPIs override dataset KPIs
-        merged_kpis = {**dataset_kpis, **custom_kpis}
-        logger.debug(f"   Using KPIs (custom merged with dataset): {merged_kpis}")
-        
-        # Get baseline metrics (time and cost) from original dataset
-        order_times = data_loader.calculate_order_execution_times()
-        
-        # Pass merged KPIs to simulation (custom values take precedence)
-        result = simulation_engine.simulate(nx_graph, df, real_kpis=merged_kpis, baseline_metrics=order_times)
-        logger.info("✅ Simulation completed successfully")
-        return SimulationResponse(**result)
+        # Check if ML predictions are available
+        if use_ml_predictions and model_manager and scenario_generator:
+            logger.info("🤖 Using ML-based KPI predictions")
+            
+            # 1. Generate scenario entities (users, items, suppliers)
+            activities = request.graph.activities
+            user_ids, items_data, supplier_ids, order_value = scenario_generator.generate_scenario_entities(
+                activities,
+                num_users=None,  # Random 1-4
+                num_items=None   # Random 1-10
+            )
+            logger.debug(f"   Generated: {len(user_ids)} users, {len(items_data)} items, {len(supplier_ids)} suppliers")
+            
+            # 2. Enrich edges with duration information from KPIs
+            edges = request.graph.edges
+            enriched_edges = enrich_edges_with_durations(activities, edges, request.graph.kpis)
+            
+            # 3. Extract 409-dimensional feature vector
+            feature_vector = extract_features_from_scenario(
+                activities,
+                enriched_edges,
+                user_ids,
+                items_data,
+                supplier_ids,
+                scalers=model_manager.scalers
+            )
+            logger.debug(f"   Feature vector extracted: shape={feature_vector.shape}")
+            
+            # 4. Predict KPIs using ML model
+            predicted_kpis_raw = model_manager.predict(feature_vector)
+            logger.debug(f"   Raw ML predicted KPIs: {predicted_kpis_raw}")
+            
+            # 5. Apply process complexity adjustments and baseline detection
+            # Check if this is the exact baseline process (most frequent variant)
+            baseline_activities = [
+                'Receive Customer Order', 'Validate Customer Order', 'Perform Credit Check',
+                'Approve Order', 'Schedule Order Fulfillment', 'Generate Pick List',
+                'Pack Items', 'Generate Shipping Label', 'Ship Order', 'Generate Invoice'
+            ]
+            
+            is_baseline_process = sorted(activities) == sorted(baseline_activities)
+            
+            if is_baseline_process:
+                # For exact baseline process, use baseline KPIs directly
+                logger.info("   📊 Detected baseline process - using baseline KPIs")
+                baseline_kpis_temp = model_manager.get_baseline_kpis()
+                predicted_kpis = baseline_kpis_temp.copy()
+            else:
+                # For modified processes, apply complexity adjustments
+                # The ML model doesn't understand that more steps = worse performance
+                baseline_activity_count = 10  # Baseline O2C process has 10 activities
+                current_activity_count = len(activities)
+                activity_delta = current_activity_count - baseline_activity_count
+                
+                # Calculate complexity penalty/bonus (2% per additional/removed step)
+                complexity_factor = 1 - (activity_delta * 0.02)  # e.g., +1 step = 0.98x multiplier
+                
+                # Apply adjustments to KPIs
+                predicted_kpis = {
+                    # Percentage KPIs: multiply by complexity factor (more steps = lower %)
+                    'on_time_delivery': predicted_kpis_raw['on_time_delivery'] * complexity_factor,
+                    'order_accuracy': predicted_kpis_raw['order_accuracy'] * complexity_factor,
+                    'invoice_accuracy': predicted_kpis_raw['invoice_accuracy'] * complexity_factor,
+                    
+                    # Days/Cost KPIs: divide by complexity factor (more steps = higher days/cost)
+                    'days_sales_outstanding': predicted_kpis_raw['days_sales_outstanding'] / complexity_factor,
+                    'avg_cost_delivery': predicted_kpis_raw['avg_cost_delivery'] / complexity_factor,
+                }
+                
+                logger.debug(f"   Activity count: {current_activity_count} (baseline: {baseline_activity_count})")
+                logger.debug(f"   Complexity factor: {complexity_factor:.3f}")
+                logger.debug(f"   Adjusted predicted KPIs: {predicted_kpis}")
+            
+            # 6. Get baseline KPIs
+            baseline_kpis = model_manager.get_baseline_kpis()
+            logger.debug(f"   Baseline KPIs: {baseline_kpis}")
+            
+            # 7. Generate summary with entity details
+            summary = scenario_generator.generate_scenario_summary(
+                user_ids,
+                items_data,
+                supplier_ids,
+                predicted_kpis
+            )
+            
+            # 8. Calculate confidence (fixed for now, could use model uncertainty)
+            confidence = 0.85
+            
+            # 9. Build response
+            response = SimulationResponse(
+                baseline_on_time_delivery=baseline_kpis['on_time_delivery'],
+                baseline_days_sales_outstanding=baseline_kpis['days_sales_outstanding'],
+                baseline_order_accuracy=baseline_kpis['order_accuracy'],
+                baseline_invoice_accuracy=baseline_kpis['invoice_accuracy'],
+                baseline_avg_cost_delivery=baseline_kpis['avg_cost_delivery'],
+                
+                on_time_delivery=predicted_kpis['on_time_delivery'],
+                days_sales_outstanding=predicted_kpis['days_sales_outstanding'],
+                order_accuracy=predicted_kpis['order_accuracy'],
+                invoice_accuracy=predicted_kpis['invoice_accuracy'],
+                avg_cost_delivery=predicted_kpis['avg_cost_delivery'],
+                
+                confidence=confidence,
+                summary=summary
+            )
+            
+            logger.info("✅ ML-based simulation completed successfully")
+            return response
+            
+        else:
+            # Fallback to rule-based prediction (from frontend)
+            logger.warning("⚠️ ML predictions not available, using rule-based fallback")
+            logger.warning("   This endpoint expects ML predictions to be enabled")
+            logger.warning("   Please run the Jupyter notebook to train the model")
+            
+            # Return baseline KPIs as both baseline and current
+            baseline_kpis = get_baseline_kpis_from_data(str(data_dir))
+            
+            return SimulationResponse(
+                baseline_on_time_delivery=baseline_kpis['on_time_delivery'],
+                baseline_days_sales_outstanding=baseline_kpis['days_sales_outstanding'],
+                baseline_order_accuracy=baseline_kpis['order_accuracy'],
+                baseline_invoice_accuracy=baseline_kpis['invoice_accuracy'],
+                baseline_avg_cost_delivery=baseline_kpis['avg_cost_delivery'],
+                
+                on_time_delivery=baseline_kpis['on_time_delivery'],
+                days_sales_outstanding=baseline_kpis['days_sales_outstanding'],
+                order_accuracy=baseline_kpis['order_accuracy'],
+                invoice_accuracy=baseline_kpis['invoice_accuracy'],
+                avg_cost_delivery=baseline_kpis['avg_cost_delivery'],
+                
+                confidence=0.5,  # Low confidence for rule-based
+                summary="ML model not available. Showing baseline KPIs. Please train the model first."
+            )
+            
     except Exception as e:
         logger.error(f"❌ Simulation error: {str(e)}")
         logger.error(traceback.format_exc())

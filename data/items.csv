@@ -1,0 +1,25 @@
+item_id,name,category,unit_price,weight_kg,stock_status
+I001,Ballpoint Pen (Pack of 12),Office Supplies,8.99,0.1,In Stock
+I002,A4 Printer Paper (Ream),Office Supplies,12.5,2.5,In Stock
+I003,Notebook (Hardcover),Office Supplies,5.99,0.3,In Stock
+I004,Stapler,Office Supplies,15.99,0.4,In Stock
+I005,Laptop (15-inch),Electronics,899.99,2.2,In Stock
+I006,Wireless Mouse,Electronics,29.99,0.2,In Stock
+I007,USB Flash Drive (32GB),Electronics,12.99,0.05,In Stock
+I008,Keyboard (Mechanical),Electronics,89.99,1.1,In Stock
+I009,Monitor (24-inch),Electronics,249.99,4.5,In Stock
+I010,Webcam (1080p),Electronics,59.99,0.3,In Stock
+I011,Office Chair,Furniture,199.99,15.0,In Stock
+I012,Desk (Standing),Furniture,349.99,30.0,In Stock
+I013,Filing Cabinet,Furniture,149.99,25.0,Low Stock
+I014,Bookshelf,Furniture,129.99,20.0,In Stock
+I015,Desk Lamp (LED),Accessories,39.99,1.2,In Stock
+I016,Phone Stand,Accessories,19.99,0.3,In Stock
+I017,Cable Organizer,Accessories,12.99,0.2,In Stock
+I018,Desk Mat,Accessories,24.99,0.5,In Stock
+I019,Storage Box (Set of 5),Storage,34.99,2.0,In Stock
+I020,Magazine Holder,Storage,14.99,0.8,In Stock
+I021,Drawer Organizer,Storage,18.99,0.6,In Stock
+I022,Printer Cartridge (Black),Printing,45.99,0.3,In Stock
+I023,Label Maker,Printing,69.99,0.7,In Stock
+I024,Shipping Labels (Pack of 100),Printing,16.99,0.4,In Stock

@@ -31,9 +31,21 @@ export interface EventLogEntry {
 }
 
 export interface SimulationResult {
-  cycle_time_change: number;
-  cost_change: number;
-  revenue_impact: number;
+  // Baseline KPIs (before changes)
+  baseline_on_time_delivery: number;      // percentage
+  baseline_days_sales_outstanding: number; // days
+  baseline_order_accuracy: number;        // percentage
+  baseline_invoice_accuracy: number;      // percentage
+  baseline_avg_cost_delivery: number;     // dollars
+  
+  // Current KPIs (after changes)
+  on_time_delivery: number;               // percentage
+  days_sales_outstanding: number;         // days
+  order_accuracy: number;                 // percentage
+  invoice_accuracy: number;               // percentage
+  avg_cost_delivery: number;              // dollars
+  
+  // Metadata
   confidence: number;
   summary: string;
 }
