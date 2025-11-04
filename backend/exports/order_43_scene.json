@@ -1,0 +1,568 @@
+{
+  "case_id": "order_43",
+  "order_info": {
+    "order_value": 362.87,
+    "order_status": "Approved",
+    "num_items": 4,
+    "total_quantity": 13
+  },
+  "kpis": {
+    "on_time_delivery": 88.09,
+    "days_sales_outstanding": 31,
+    "order_accuracy": 98.68,
+    "invoice_accuracy": 89.45,
+    "avg_cost_delivery": 26.88
+  },
+  "entities": {
+    "users": [
+      "U001",
+      "U006",
+      "U002",
+      "U005"
+    ],
+    "items": [
+      {
+        "id": "I021",
+        "name": "Drawer Organizer",
+        "quantity": 2,
+        "line_total": 37.98
+      },
+      {
+        "id": "I017",
+        "name": "Cable Organizer",
+        "quantity": 1,
+        "line_total": 12.99
+      },
+      {
+        "id": "I001",
+        "name": "Ballpoint Pen (Pack of 12)",
+        "quantity": 4,
+        "line_total": 35.96
+      },
+      {
+        "id": "I022",
+        "name": "Printer Cartridge (Black)",
+        "quantity": 6,
+        "line_total": 275.94
+      }
+    ],
+    "suppliers": [
+      "S012",
+      "S004",
+      "S006",
+      "S006"
+    ]
+  },
+  "animation": {
+    "duration": 660.0,
+    "keyframes": [
+      {
+        "time": 0.0,
+        "position": [
+          -10,
+          0,
+          0
+        ],
+        "event": "Receive Customer Order",
+        "label": "Sales Desk",
+        "timestamp": "2025-11-01T17:50:15.348555"
+      },
+      {
+        "time": 60.0,
+        "position": [
+          -8,
+          0,
+          2
+        ],
+        "event": "Validate Customer Order",
+        "label": "Validation",
+        "timestamp": "2025-11-01T17:51:15.348555"
+      },
+      {
+        "time": 120.0,
+        "position": [
+          -6,
+          0,
+          3
+        ],
+        "event": "Perform Credit Check",
+        "label": "Finance",
+        "timestamp": "2025-11-01T17:52:15.348555"
+      },
+      {
+        "time": 180.0,
+        "position": [
+          -4,
+          0,
+          2
+        ],
+        "event": "Approve Order",
+        "label": "Approval Desk",
+        "timestamp": "2025-11-01T17:53:15.348555"
+      },
+      {
+        "time": 240.0,
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "event": "Schedule Order Fulfillment",
+        "label": "Scheduler",
+        "timestamp": "2025-11-01T17:54:15.348555"
+      },
+      {
+        "time": 300.0,
+        "position": [
+          2,
+          0,
+          -2
+        ],
+        "event": "Generate Pick List",
+        "label": "Warehouse A",
+        "timestamp": "2025-11-01T17:55:15.348555"
+      },
+      {
+        "time": 420.0,
+        "position": [
+          4,
+          0,
+          -3
+        ],
+        "event": "Pack Items",
+        "label": "Packing Station",
+        "timestamp": "2025-11-01T17:57:15.348555"
+      },
+      {
+        "time": 480.0,
+        "position": [
+          6,
+          0,
+          -2
+        ],
+        "event": "Generate Shipping Label",
+        "label": "Labeling",
+        "timestamp": "2025-11-01T17:58:15.348555"
+      },
+      {
+        "time": 540.0,
+        "position": [
+          8,
+          0,
+          0
+        ],
+        "event": "Ship Order",
+        "label": "Shipping Dock",
+        "timestamp": "2025-11-01T17:59:15.348555"
+      },
+      {
+        "time": 660.0,
+        "position": [
+          10,
+          0,
+          1
+        ],
+        "event": "Generate Invoice",
+        "label": "Billing",
+        "timestamp": "2025-11-01T18:01:15.348555"
+      }
+    ]
+  },
+  "locations": [
+    {
+      "name": "Receive Customer Order",
+      "label": "Sales Desk",
+      "position": [
+        -10,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Validate Customer Order",
+      "label": "Validation",
+      "position": [
+        -8,
+        0,
+        2
+      ]
+    },
+    {
+      "name": "Perform Credit Check",
+      "label": "Finance",
+      "position": [
+        -6,
+        0,
+        3
+      ]
+    },
+    {
+      "name": "Approve Order",
+      "label": "Approval Desk",
+      "position": [
+        -4,
+        0,
+        2
+      ]
+    },
+    {
+      "name": "Reject Order",
+      "label": "Rejection",
+      "position": [
+        -4,
+        0,
+        -3
+      ]
+    },
+    {
+      "name": "Apply Discount",
+      "label": "Discount Desk",
+      "position": [
+        -2,
+        0,
+        3
+      ]
+    },
+    {
+      "name": "Schedule Order Fulfillment",
+      "label": "Scheduler",
+      "position": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Generate Pick List",
+      "label": "Warehouse A",
+      "position": [
+        2,
+        0,
+        -2
+      ]
+    },
+    {
+      "name": "Pack Items",
+      "label": "Packing Station",
+      "position": [
+        4,
+        0,
+        -3
+      ]
+    },
+    {
+      "name": "Generate Shipping Label",
+      "label": "Labeling",
+      "position": [
+        6,
+        0,
+        -2
+      ]
+    },
+    {
+      "name": "Ship Order",
+      "label": "Shipping Dock",
+      "position": [
+        8,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Process Return Request",
+      "label": "Returns",
+      "position": [
+        6,
+        0,
+        3
+      ]
+    },
+    {
+      "name": "Generate Invoice",
+      "label": "Billing",
+      "position": [
+        10,
+        0,
+        1
+      ]
+    }
+  ],
+  "item_paths": [
+    {
+      "item_id": "I021",
+      "name": "Drawer Organizer",
+      "quantity": 2,
+      "category": "Storage",
+      "supplier_id": "S012",
+      "supplier_name": "Southern Office Depot",
+      "color": "#ec4899",
+      "keyframes": [
+        {
+          "time": 0.0,
+          "position": [
+            -10,
+            0,
+            9
+          ],
+          "label": "At Southern Office Depot",
+          "status": "waiting"
+        },
+        {
+          "time": 210.0,
+          "position": [
+            -10,
+            0,
+            9
+          ],
+          "label": "Departing from Southern Office Depot",
+          "status": "in_transit"
+        },
+        {
+          "time": 290.0,
+          "position": [
+            2,
+            0,
+            -2
+          ],
+          "label": "Arrived at Warehouse",
+          "status": "arrived"
+        },
+        {
+          "time": 415.0,
+          "position": [
+            2,
+            0,
+            -2
+          ],
+          "label": "Moving to Packing",
+          "status": "ready"
+        },
+        {
+          "time": 420.0,
+          "position": [
+            4,
+            0,
+            -3
+          ],
+          "label": "Being Packed",
+          "status": "packing"
+        }
+      ]
+    },
+    {
+      "item_id": "I017",
+      "name": "Cable Organizer",
+      "quantity": 1,
+      "category": "Accessories",
+      "supplier_id": "S004",
+      "supplier_name": "Pacific Supplies Ltd.",
+      "color": "#06b6d4",
+      "keyframes": [
+        {
+          "time": 0.0,
+          "position": [
+            -20,
+            0,
+            -2
+          ],
+          "label": "At Pacific Supplies Ltd.",
+          "status": "waiting"
+        },
+        {
+          "time": 150.0,
+          "position": [
+            -20,
+            0,
+            -2
+          ],
+          "label": "Departing from Pacific Supplies Ltd.",
+          "status": "in_transit"
+        },
+        {
+          "time": 290.0,
+          "position": [
+            2,
+            0,
+            -2
+          ],
+          "label": "Arrived at Warehouse",
+          "status": "arrived"
+        },
+        {
+          "time": 415.0,
+          "position": [
+            2,
+            0,
+            -2
+          ],
+          "label": "Moving to Packing",
+          "status": "ready"
+        },
+        {
+          "time": 420.0,
+          "position": [
+            4,
+            0,
+            -3
+          ],
+          "label": "Being Packed",
+          "status": "packing"
+        }
+      ]
+    },
+    {
+      "item_id": "I001",
+      "name": "Ballpoint Pen (Pack of 12)",
+      "quantity": 4,
+      "category": "Office Supplies",
+      "supplier_id": "S006",
+      "supplier_name": "National Print Supply",
+      "color": "#10b981",
+      "keyframes": [
+        {
+          "time": 0.0,
+          "position": [
+            -20,
+            0,
+            2
+          ],
+          "label": "At National Print Supply",
+          "status": "waiting"
+        },
+        {
+          "time": 210.0,
+          "position": [
+            -20,
+            0,
+            2
+          ],
+          "label": "Departing from National Print Supply",
+          "status": "in_transit"
+        },
+        {
+          "time": 290.0,
+          "position": [
+            2,
+            0,
+            -2
+          ],
+          "label": "Arrived at Warehouse",
+          "status": "arrived"
+        },
+        {
+          "time": 415.0,
+          "position": [
+            2,
+            0,
+            -2
+          ],
+          "label": "Moving to Packing",
+          "status": "ready"
+        },
+        {
+          "time": 420.0,
+          "position": [
+            4,
+            0,
+            -3
+          ],
+          "label": "Being Packed",
+          "status": "packing"
+        }
+      ]
+    },
+    {
+      "item_id": "I022",
+      "name": "Printer Cartridge (Black)",
+      "quantity": 6,
+      "category": "Printing",
+      "supplier_id": "S006",
+      "supplier_name": "National Print Supply",
+      "color": "#8b5cf6",
+      "keyframes": [
+        {
+          "time": 0.0,
+          "position": [
+            -20,
+            0,
+            2
+          ],
+          "label": "At National Print Supply",
+          "status": "waiting"
+        },
+        {
+          "time": 210.0,
+          "position": [
+            -20,
+            0,
+            2
+          ],
+          "label": "Departing from National Print Supply",
+          "status": "in_transit"
+        },
+        {
+          "time": 290.0,
+          "position": [
+            2,
+            0,
+            -2
+          ],
+          "label": "Arrived at Warehouse",
+          "status": "arrived"
+        },
+        {
+          "time": 415.0,
+          "position": [
+            2,
+            0,
+            -2
+          ],
+          "label": "Moving to Packing",
+          "status": "ready"
+        },
+        {
+          "time": 420.0,
+          "position": [
+            4,
+            0,
+            -3
+          ],
+          "label": "Being Packed",
+          "status": "packing"
+        }
+      ]
+    }
+  ],
+  "supplier_locations": [
+    {
+      "supplier_id": "S004",
+      "label": "Pacific Supplies Ltd.",
+      "country": "China",
+      "position": [
+        -20,
+        0,
+        -2
+      ]
+    },
+    {
+      "supplier_id": "S006",
+      "label": "National Print Supply",
+      "country": "USA",
+      "position": [
+        -20,
+        0,
+        2
+      ]
+    },
+    {
+      "supplier_id": "S012",
+      "label": "Southern Office Depot",
+      "country": "USA",
+      "position": [
+        -10,
+        0,
+        9
+      ]
+    }
+  ]
+}

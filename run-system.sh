@@ -9,6 +9,7 @@ echo "🧹 Cleaning up existing processes..."
 lsof -ti:8000 | xargs kill -9 2>/dev/null || true
 lsof -ti:3000 | xargs kill -9 2>/dev/null || true
 lsof -ti:5173 | xargs kill -9 2>/dev/null || true
+lsof -ti:5175 | xargs kill -9 2>/dev/null || true
 
 # Check prerequisites
 echo "📋 Checking prerequisites..."
@@ -122,20 +123,43 @@ FRONTEND_PID=$!
 # Wait for frontend to start
 sleep 3
 
+# Set up Omniverse 3D frontend
+echo ""
+echo "🎬 Setting up Omniverse 3D Visualization Frontend..."
+cd ../omniverse-frontend
+
+if [ ! -d "node_modules" ]; then
+    echo "Installing Node.js dependencies for 3D frontend..."
+    npm install
+else
+    echo "Node modules already installed, skipping..."
+fi
+
+echo "🚀 Starting Omniverse 3D frontend..."
+echo "3D Visualization will be available at: http://localhost:5175"
+npm run dev > omniverse-frontend.log 2>&1 &
+OMNIVERSE_FRONTEND_PID=$!
+
+# Wait for omniverse frontend to start
+sleep 3
+
 echo ""
 echo "🎉 Process Simulation Studio is now running!"
 echo "============================================="
-echo "✅ Backend:  http://localhost:8000 (API Docs: /docs)"
-echo "✅ Frontend: http://localhost:3000"
+echo "✅ Backend:             http://localhost:8000 (API Docs: /docs)"
+echo "✅ Dashboard Frontend:  http://localhost:3000"
+echo "✅ 3D Visualization:    http://localhost:5175"
 echo ""
 echo "📋 To test the system:"
-echo "   1. Open http://localhost:3000 in your browser"
-echo "   2. Try the sample prompts to modify the process"
-echo "   3. Click 'Simulate' to see KPI impact"
+echo "   1. Open http://localhost:3000 for the main dashboard"
+echo "   2. Open http://localhost:5175 for 3D Omniverse visualization"
+echo "   3. Try the sample prompts to modify the process"
+echo "   4. Click 'Simulate' to see KPI impact"
 echo ""
 echo "📄 Logs:"
-echo "   Backend: backend/backend.log"
-echo "   Frontend: frontend/frontend.log"
+echo "   Backend:        backend/backend.log"
+echo "   Frontend:       frontend/frontend.log"
+echo "   3D Viewer:      omniverse-frontend/omniverse-frontend.log"
 echo ""
 echo "Press Ctrl+C to stop all servers"
 
@@ -145,6 +169,7 @@ cleanup() {
     echo "🛑 Shutting down servers..."
     kill $BACKEND_PID 2>/dev/null
     kill $FRONTEND_PID 2>/dev/null
+    kill $OMNIVERSE_FRONTEND_PID 2>/dev/null
     echo "✅ Servers stopped. Goodbye!"
     exit 0
 }

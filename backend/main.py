@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 import pandas as pd
@@ -19,6 +20,7 @@ from feature_extraction import (
     enrich_edges_with_durations,
     parse_activity_duration
 )
+from usd_builder import generate_gltf_for_case, get_sample_case_data
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -32,7 +34,7 @@ app = FastAPI(title="Process Simulation Studio API", version="1.0.0")
 # Configure CORS for frontend integration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_origins=["http://localhost:5173", "http://localhost:3000", "http://localhost:5175"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -118,6 +120,18 @@ async def startup_event():
     logger.info("="*80)
     
     try:
+        # Create exports directory for 3D visualization files
+        exports_dir = backend_dir / 'exports'
+        exports_dir.mkdir(exist_ok=True)
+        logger.info(f"✓ Exports directory ready: {exports_dir}")
+        
+        # Mount static files for serving exported scenes
+        try:
+            app.mount("/exports", StaticFiles(directory=str(exports_dir)), name="exports")
+            logger.info("✓ Static files mounted at /exports")
+        except Exception as e:
+            logger.warning(f"⚠️ Could not mount static files: {e}")
+        
         # Create trained_models directory if it doesn't exist
         models_dir = backend_dir / 'trained_models'
         models_dir.mkdir(exist_ok=True)
@@ -483,6 +497,92 @@ async def simulate_process(request: SimulationRequest):
         logger.error(f"❌ Simulation error: {str(e)}")
         logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+@app.get("/api/sample")
+async def get_sample_case(case_id: Optional[str] = None, seed: int = 42):
+    """
+    Get a sample O2C case with 3D visualization data.
+    
+    This endpoint:
+    1. Fetches a sample case from the dataset (using seed for consistency)
+    2. Generates a 3D scene JSON file with animation keyframes
+    3. Returns the scene file path and metadata
+    
+    Args:
+        case_id: Optional specific case ID (default: pick based on seed)
+        seed: Random seed for consistent case selection (default: 42)
+    """
+    try:
+        logger.info(f"📦 Fetching sample case (seed={seed})")
+        
+        # Create exports directory
+        exports_dir = backend_dir / 'exports'
+        exports_dir.mkdir(exist_ok=True)
+        
+        # Get sample case data
+        case_id, events, order_info, users, items, suppliers, kpis = get_sample_case_data(
+            data_loader, case_id, seed
+        )
+        
+        logger.info(f"   Case ID: {case_id}")
+        logger.info(f"   Events: {len(events)}")
+        logger.info(f"   Users: {len(users)}")
+        logger.info(f"   Items: {len(items)}")
+        logger.info(f"   Suppliers: {len(suppliers)}")
+        
+        # Generate GLTF/JSON scene file
+        scene_path, metadata = generate_gltf_for_case(
+            case_id, events, order_info, users, items, suppliers, kpis, exports_dir
+        )
+        
+        # Make path relative to backend directory for serving
+        relative_path = Path(scene_path).relative_to(backend_dir)
+        
+        logger.info(f"✅ Generated 3D scene: {relative_path}")
+        
+        # Convert all values to native Python types (not numpy) for JSON serialization
+        return {
+            "case_id": str(case_id),
+            "scene_path": str(relative_path),
+            "absolute_path": str(scene_path),
+            "metadata": {
+                "case_id": str(metadata.get('case_id', '')),
+                "duration": float(metadata.get('duration', 0)),
+                "num_events": int(metadata.get('num_events', 0)),
+                "start_time": str(metadata.get('start_time', '')) if metadata.get('start_time') else None,
+                "end_time": str(metadata.get('end_time', '')) if metadata.get('end_time') else None,
+            },
+            "order_info": {
+                "order_value": float(order_info.get('order_value', 0)),
+                "order_status": str(order_info.get('order_status', '')),
+                "num_items": int(order_info.get('num_items', 0)),
+                "total_quantity": int(order_info.get('total_quantity', 0)),
+            },
+            "kpis": {
+                "on_time_delivery": float(kpis.get('on_time_delivery', 0)),
+                "days_sales_outstanding": float(kpis.get('days_sales_outstanding', 0)),
+                "order_accuracy": float(kpis.get('order_accuracy', 0)),
+                "invoice_accuracy": float(kpis.get('invoice_accuracy', 0)),
+                "avg_cost_delivery": float(kpis.get('avg_cost_delivery', 0)),
+            },
+            "entities": {
+                "users": users,
+                "items": [
+                    {
+                        "id": str(item.get('item_id', '')),
+                        "name": str(item.get('name', '')),
+                        "quantity": int(item.get('quantity', 0)),
+                    }
+                    for item in items
+                ],
+                "suppliers": suppliers,
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Error generating sample case: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Error generating sample case: {str(e)}")
 
 @app.get("/api/health")
 async def health_check():
