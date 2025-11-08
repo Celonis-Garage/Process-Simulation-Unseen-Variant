@@ -1,0 +1,222 @@
+{
+  "total_variants": 8,
+  "total_cases": 2000,
+  "variants": [
+    {
+      "variant_id": "variant_1",
+      "event_sequence": [
+        "Receive Customer Order",
+        "Validate Customer Order",
+        "Perform Credit Check",
+        "Approve Order",
+        "Schedule Order Fulfillment",
+        "Generate Pick List",
+        "Pack Items",
+        "Generate Shipping Label",
+        "Ship Order",
+        "Generate Invoice"
+      ],
+      "frequency_count": 1347,
+      "frequency_percentage": 67.35,
+      "context": "This represents a standard order fulfillment process for credit-worthy customers, where a customer order is received, validated, approved, and successfully fulfilled through warehouse picking, packing, shipping, and invoicing. Key characteristics include a credit check, indicating that the customer's creditworthiness is verified before order approval, which is a typical step for business-to-business or high-value transactions. This process flow suggests a business situation where the company prioritizes credit risk management to minimize potential bad debt, which is common in industries with high average order values or lengthy payment terms.",
+      "keywords": [
+        "standard order fulfillment",
+        "credit-worthy customers",
+        "business-to-business order",
+        "high-value transaction",
+        "normal fulfillment",
+        "happy path",
+        "order approval process",
+        "credit check required"
+      ],
+      "is_most_frequent": true
+    },
+    {
+      "variant_id": "variant_2",
+      "event_sequence": [
+        "Receive Customer Order",
+        "Validate Customer Order",
+        "Perform Credit Check",
+        "Approve Order",
+        "Schedule Order Fulfillment",
+        "Generate Pick List",
+        "Pack Items",
+        "Generate Shipping Label",
+        "Ship Order",
+        "Generate Invoice",
+        "Apply Discount"
+      ],
+      "frequency_count": 365,
+      "frequency_percentage": 18.25,
+      "context": "This represents a standard order fulfillment process with a post-order discount application, where a customer order is received, validated, approved, and successfully fulfilled through warehouse picking, packing, shipping, and invoicing. The key characteristic of this process is the application of a discount after the order has been shipped, deviating from the typical O2C process where discounts are applied before order fulfillment. This process flow may occur in business situations where discounts are offered as a loyalty reward or a promotional campaign after the initial order has been completed.",
+      "keywords": [
+        "post-order discount",
+        "loyalty reward",
+        "promotional fulfillment",
+        "standard order fulfillment",
+        "happy path order",
+        "normal fulfillment process",
+        "order with discount",
+        "delayed discount application"
+      ],
+      "is_most_frequent": false
+    },
+    {
+      "variant_id": "variant_3",
+      "event_sequence": [
+        "Receive Customer Order",
+        "Validate Customer Order",
+        "Perform Credit Check",
+        "Reject Order"
+      ],
+      "frequency_count": 151,
+      "frequency_percentage": 7.55,
+      "context": "This represents a rejected order scenario where a customer's order is received and validated, but ultimately rejected due to a failed credit check. The key characteristic of this process variant is the early rejection of the order, deviating from the typical O2C process which would involve further steps such as order fulfillment and invoicing. This process flow is likely triggered by a business situation where a customer's creditworthiness is a concern, prompting a rigorous credit check to mitigate potential financial risks.",
+      "keywords": [
+        "rejected order",
+        "credit check failure",
+        "order denial",
+        "failed credit verification",
+        "early order rejection",
+        "credit risk mitigation",
+        "high-risk order",
+        "denied customer order"
+      ],
+      "is_most_frequent": false
+    },
+    {
+      "variant_id": "variant_4",
+      "event_sequence": [
+        "Receive Customer Order",
+        "Validate Customer Order",
+        "Perform Credit Check",
+        "Approve Order",
+        "Schedule Order Fulfillment",
+        "Generate Pick List",
+        "Pack Items",
+        "Generate Shipping Label",
+        "Ship Order",
+        "Generate Invoice",
+        "Process Return Request"
+      ],
+      "frequency_count": 84,
+      "frequency_percentage": 4.2,
+      "context": "This represents a post-fulfillment return order scenario where a customer order is received, validated, approved, fulfilled, and shipped, but subsequently generates a return request. Key characteristics include a standard flow with a return, indicating that the initial order was successfully fulfilled but the customer requested to return the items. This process flow suggests a business situation where a customer is exercising their return policy option, potentially due to a change of mind, defective product, or incorrect order fulfillment.",
+      "keywords": [
+        "post-fulfillment return",
+        "standard return flow",
+        "customer return request",
+        "return order scenario",
+        "successful fulfillment return",
+        "change of mind return",
+        "defective product return",
+        "normal fulfillment with return"
+      ],
+      "is_most_frequent": false
+    },
+    {
+      "variant_id": "variant_5",
+      "event_sequence": [
+        "Receive Customer Order",
+        "Validate Customer Order",
+        "Perform Credit Check",
+        "Reject Order",
+        "Apply Discount"
+      ],
+      "frequency_count": 34,
+      "frequency_percentage": 1.7,
+      "context": "This represents a rejected order scenario where a customer's order is received, validated, and then rejected due to a failed credit check, with an unusual subsequent step of applying a discount. The key characteristic of this process variant is the rejection of the order, which deviates from a typical O2C process where orders are fulfilled. This business situation may occur when a customer's creditworthiness is questionable, but the company still wants to incentivize the customer with a discount for potential future orders.",
+      "keywords": [
+        "rejected order",
+        "credit check failure",
+        "order denial",
+        "discount application",
+        "failed credit order",
+        "incentivized rejection",
+        "creditworthiness issue",
+        "order rejection with discount"
+      ],
+      "is_most_frequent": false
+    },
+    {
+      "variant_id": "variant_6",
+      "event_sequence": [
+        "Receive Customer Order",
+        "Validate Customer Order",
+        "Perform Credit Check",
+        "Approve Order",
+        "Schedule Order Fulfillment",
+        "Generate Pick List",
+        "Pack Items",
+        "Generate Shipping Label",
+        "Ship Order",
+        "Generate Invoice",
+        "Process Return Request",
+        "Apply Discount"
+      ],
+      "frequency_count": 13,
+      "frequency_percentage": 0.65,
+      "context": "This represents a post-shipment return and discount application process, where a customer order is fulfilled and shipped, but subsequently returned, prompting a return request, and a discount is applied. Key characteristics include the presence of a return request and a discount, deviating from a typical O2C process that usually handles returns and discounts separately or prior to shipping. This scenario likely occurs when a customer is dissatisfied with their order and requests a return, with the company applying a discount as a gesture of goodwill.",
+      "keywords": [
+        "post-shipment return",
+        "return and discount",
+        "order fulfillment with return",
+        "customer return request",
+        "discount application",
+        "dissatisfied customer return",
+        "return after shipment",
+        "goodwill discount"
+      ],
+      "is_most_frequent": false
+    },
+    {
+      "variant_id": "variant_7",
+      "event_sequence": [
+        "Receive Customer Order",
+        "Validate Customer Order",
+        "Perform Credit Check",
+        "Reject Order",
+        "Process Return Request"
+      ],
+      "frequency_count": 4,
+      "frequency_percentage": 0.2,
+      "context": "This represents a rejected order scenario where a customer's order is received, validated, and then rejected due to a failed credit check, subsequently triggering a return request process. Key characteristics include a rejected order and return request, deviating from the typical O2C process where orders are fulfilled and invoiced. This process flow likely occurs when a customer's creditworthiness is questionable or insufficient, prompting the company to cancel the order and process a return.",
+      "keywords": [
+        "rejected order",
+        "credit check failure",
+        "order denial",
+        "return request",
+        "failed credit check",
+        "credit rejection",
+        "order cancellation",
+        "return process"
+      ],
+      "is_most_frequent": false
+    },
+    {
+      "variant_id": "variant_8",
+      "event_sequence": [
+        "Receive Customer Order",
+        "Validate Customer Order",
+        "Perform Credit Check",
+        "Reject Order",
+        "Process Return Request",
+        "Apply Discount"
+      ],
+      "frequency_count": 2,
+      "frequency_percentage": 0.1,
+      "context": "This represents a rejected order scenario with a subsequent return request, where a customer's order is rejected after a credit check, but uniquely involves processing a return request and applying a discount. The key characteristics of this process variant include a rejected order, return request, and discount application, deviating from a typical O2C process that would normally not involve returns or discounts after an order rejection. This unusual flow may occur when a customer attempts to return a product that was never actually shipped due to the initial order rejection, and the business is applying a discount as a goodwill gesture.",
+      "keywords": [
+        "rejected order",
+        "return request",
+        "credit check failure",
+        "order denial with return",
+        "discount application",
+        "goodwill discount",
+        "non-standard order",
+        "return after rejection"
+      ],
+      "is_most_frequent": false
+    }
+  ]
+}

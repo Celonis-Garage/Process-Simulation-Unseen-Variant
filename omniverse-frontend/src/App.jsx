@@ -12,18 +12,44 @@ function App() {
   const [currentTime, setCurrentTime] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1); // 1x normal speed
+  const [availableOrders, setAvailableOrders] = useState([]);
+  const [selectedOrder, setSelectedOrder] = useState('order_43');
 
   useEffect(() => {
-    fetchSampleCase();
+    fetchAvailableOrders();
   }, []);
 
-  const fetchSampleCase = async () => {
+  useEffect(() => {
+    if (selectedOrder) {
+      fetchSampleCase(selectedOrder);
+    }
+  }, [selectedOrder]);
+
+  const fetchAvailableOrders = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/orders`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      setAvailableOrders(data.orders || []);
+    } catch (err) {
+      console.error('Error fetching available orders:', err);
+      // Don't show error for order list failure, just use default
+    }
+  };
+
+  const fetchSampleCase = async (caseId) => {
     try {
       setLoading(true);
       setError(null);
+      setIsPlaying(false); // Pause animation when switching orders
+      setCurrentTime(0); // Reset timeline
 
-      // Fetch sample case with seed=42 for consistency
-      const response = await fetch(`${API_BASE_URL}/api/sample?seed=42`);
+      // Fetch specific case
+      const response = await fetch(`${API_BASE_URL}/api/sample?case_id=${caseId}`);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -82,7 +108,7 @@ function App() {
       <div className="error-container">
         <h2>Error Loading Visualization</h2>
         <p>{error}</p>
-        <button onClick={fetchSampleCase}>Retry</button>
+        <button onClick={() => fetchSampleCase(selectedOrder)}>Retry</button>
       </div>
     );
   }
@@ -91,7 +117,7 @@ function App() {
     return (
       <div className="error-container">
         <p>No scene data available</p>
-        <button onClick={fetchSampleCase}>Load Sample</button>
+        <button onClick={() => fetchSampleCase(selectedOrder)}>Load Sample</button>
       </div>
     );
   }
@@ -99,7 +125,24 @@ function App() {
   return (
     <div className="app-container">
       <header className="app-header">
-        <h1>🎬 O2C Process - 3D Omniverse Visualization</h1>
+        <div className="header-top">
+          <h1>🎬 O2C Process - 3D Visualization</h1>
+          <div className="order-selector">
+            <label htmlFor="order-select">Select Order:</label>
+            <select 
+              id="order-select"
+              value={selectedOrder} 
+              onChange={(e) => setSelectedOrder(e.target.value)}
+              className="order-dropdown"
+            >
+              {availableOrders.map((order) => (
+                <option key={order.case_id} value={order.case_id}>
+                  {order.case_id} ({order.item_count} items, {order.event_count} events)
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
         <div className="header-info">
           <span className="case-id">Case: {sceneData?.case_id || 'N/A'}</span>
           <span className="order-value">
@@ -208,7 +251,7 @@ function App() {
       </div>
 
       <Timeline
-        duration={sceneData?.animation?.duration || 0}
+        duration={60}
         currentTime={currentTime}
         isPlaying={isPlaying}
         playbackSpeed={playbackSpeed}

@@ -25,41 +25,208 @@ class NumpyEncoder(json.JSONEncoder):
 
 logger = logging.getLogger(__name__)
 
+def generate_dynamic_supplier_positions(supplier_ids: List[str]) -> Dict[str, Dict[str, Any]]:
+    """
+    Dynamically generate positions for suppliers based on how many there are.
+    Distributes them evenly along top (z=8) and bottom (z=-8) rows.
+    
+    Args:
+        supplier_ids: List of supplier IDs to position
+        
+    Returns:
+        Dictionary mapping supplier_id to position dict with x, y, z, label, country
+    """
+    positions = {}
+    count = len(supplier_ids)
+    
+    # Distribute evenly between top and bottom
+    top_count = (count + 1) // 2
+    bottom_count = count - top_count
+    
+    # Calculate spacing to fit all suppliers
+    x_range = 32  # From -16 to 16
+    x_spacing = x_range / max(top_count, bottom_count) if count > 0 else 4
+    x_start = -16
+    
+    # Load supplier data for labels and countries
+    data_dir = Path(__file__).parent.parent / 'data'
+    df_suppliers = pd.read_csv(data_dir / 'suppliers.csv')
+    
+    # Position top row
+    for i, sid in enumerate(supplier_ids[:top_count]):
+        supplier_info = df_suppliers[df_suppliers['supplier_id'] == sid]
+        label = supplier_info['name'].iloc[0].split()[0] if len(supplier_info) > 0 else sid
+        country = supplier_info['country'].iloc[0] if len(supplier_info) > 0 else 'USA'
+        
+        positions[sid] = {
+            'x': x_start + i * x_spacing,
+            'y': 0,
+            'z': 8,
+            'label': label[:15],  # Truncate long names
+            'country': country
+        }
+    
+    # Position bottom row
+    for i, sid in enumerate(supplier_ids[top_count:]):
+        supplier_info = df_suppliers[df_suppliers['supplier_id'] == sid]
+        label = supplier_info['name'].iloc[0].split()[0] if len(supplier_info) > 0 else sid
+        country = supplier_info['country'].iloc[0] if len(supplier_info) > 0 else 'USA'
+        
+        positions[sid] = {
+            'x': x_start + i * x_spacing,
+            'y': 0,
+            'z': -8,
+            'label': label[:15],
+            'country': country
+        }
+    
+    return positions
+
+def generate_dynamic_activity_positions(activities: List[str], most_frequent_variant: List[str]) -> Dict[str, Dict[str, Any]]:
+    """
+    Dynamically generate positions for activities.
+    Main flow activities go horizontally at z=0 in sequence order.
+    True deviations (Reject, Discount, Returns) are positioned with rectangular box flow.
+    
+    Args:
+        activities: All unique activities in this case (in order they appear)
+        most_frequent_variant: Activities in the most frequent variant (reference)
+        
+    Returns:
+        Dictionary mapping activity name to position dict with x, y, z, label, type
+    """
+    positions = {}
+    
+    # Position main flow horizontally
+    x_start = -18
+    x_spacing = 4
+    
+    # Shorten common labels
+    label_map = {
+        'Receive Customer Order': 'Receive Order',
+        'Validate Customer Order': 'Validate',
+        'Perform Credit Check': 'Credit Check',
+        'Approve Order': 'Approve',
+        'Schedule Order Fulfillment': 'Schedule',
+        'Generate Pick List': 'Pick List',
+        'Pack Items': 'Pack',
+        'Generate Shipping Label': 'Ship Label',
+        'Ship Order': 'Ship',
+        'Generate Invoice': 'Invoice',
+        'Reject Order': 'Reject',
+        'Apply Discount': 'Discount',
+        'Process Return Request': 'Returns',
+    }
+    
+    # Known deviation activities that should have rectangular box flow
+    known_deviations = {'Reject Order', 'Apply Discount', 'Process Return Request'}
+    
+    # Separate main flow from true deviations
+    main_flow_activities = [a for a in activities if a not in known_deviations]
+    deviation_activities = [a for a in activities if a in known_deviations]
+    
+    # Position main flow activities in order
+    for i, activity in enumerate(main_flow_activities):
+        positions[activity] = {
+            'x': x_start + i * x_spacing,
+            'y': 0,
+            'z': 0,
+            'label': label_map.get(activity, activity[:12]),
+            'type': 'main'
+        }
+    
+    # Position deviations using rectangular box flow pattern
+    # Place them BETWEEN relevant main events
+    for dev_activity in deviation_activities:
+        if dev_activity == 'Reject Order':
+            # Between Approve and Schedule
+            if 'Approve Order' in positions and 'Schedule Order Fulfillment' in positions:
+                x_between = (positions['Approve Order']['x'] + positions['Schedule Order Fulfillment']['x']) / 2
+                z_offset = -4  # Below main line
+            else:
+                # Fallback if those events don't exist
+                x_between = x_start + 2 * x_spacing
+                z_offset = -4
+                
+        elif dev_activity == 'Apply Discount':
+            # Between Schedule and Pick List
+            if 'Schedule Order Fulfillment' in positions and 'Generate Pick List' in positions:
+                x_between = (positions['Schedule Order Fulfillment']['x'] + positions['Generate Pick List']['x']) / 2
+                z_offset = 4  # Above main line
+            else:
+                x_between = x_start + 4 * x_spacing
+                z_offset = 4
+                
+        elif dev_activity == 'Process Return Request':
+            # Between Ship and Invoice
+            if 'Ship Order' in positions and 'Generate Invoice' in positions:
+                x_between = (positions['Ship Order']['x'] + positions['Generate Invoice']['x']) / 2
+                z_offset = 4  # Above main line
+            else:
+                x_between = x_start + 8 * x_spacing
+                z_offset = 4
+        else:
+            # Unknown deviation - place at end
+            x_between = x_start + len(main_flow_activities) * x_spacing
+            z_offset = 4
+        
+        positions[dev_activity] = {
+            'x': x_between,
+            'y': 0,
+            'z': z_offset,
+            'label': label_map.get(dev_activity, dev_activity[:12]),
+            'type': 'deviation'
+        }
+    
+    return positions
+
 # Location coordinates for the warehouse layout (in 3D space)
+# Most frequent variant (10 activities) in a straight horizontal line at z=0
+# Deviations positioned BETWEEN main events, creating rectangular box flow
 LOCATIONS = {
-    'Receive Customer Order': {'x': -10, 'y': 0, 'z': 0, 'label': 'Sales Desk'},
-    'Validate Customer Order': {'x': -8, 'y': 0, 'z': 2, 'label': 'Validation'},
-    'Perform Credit Check': {'x': -6, 'y': 0, 'z': 3, 'label': 'Finance'},
-    'Approve Order': {'x': -4, 'y': 0, 'z': 2, 'label': 'Approval Desk'},
-    'Reject Order': {'x': -4, 'y': 0, 'z': -3, 'label': 'Rejection'},
-    'Apply Discount': {'x': -2, 'y': 0, 'z': 3, 'label': 'Discount Desk'},
-    'Schedule Order Fulfillment': {'x': 0, 'y': 0, 'z': 0, 'label': 'Scheduler'},
-    'Generate Pick List': {'x': 2, 'y': 0, 'z': -2, 'label': 'Warehouse A'},
-    'Pack Items': {'x': 4, 'y': 0, 'z': -3, 'label': 'Packing Station'},
-    'Generate Shipping Label': {'x': 6, 'y': 0, 'z': -2, 'label': 'Labeling'},
-    'Ship Order': {'x': 8, 'y': 0, 'z': 0, 'label': 'Shipping Dock'},
-    'Process Return Request': {'x': 6, 'y': 0, 'z': 3, 'label': 'Returns'},
-    'Generate Invoice': {'x': 10, 'y': 0, 'z': 1, 'label': 'Billing'},
+    # Main flow - horizontal line (most frequent variant)
+    'Receive Customer Order': {'x': -18, 'y': 0, 'z': 0, 'label': 'Receive Order', 'type': 'main'},
+    'Validate Customer Order': {'x': -14, 'y': 0, 'z': 0, 'label': 'Validate', 'type': 'main'},
+    'Perform Credit Check': {'x': -10, 'y': 0, 'z': 0, 'label': 'Credit Check', 'type': 'main'},
+    'Approve Order': {'x': -6, 'y': 0, 'z': 0, 'label': 'Approve', 'type': 'main'},
+    'Schedule Order Fulfillment': {'x': -2, 'y': 0, 'z': 0, 'label': 'Schedule', 'type': 'main'},
+    'Generate Pick List': {'x': 2, 'y': 0, 'z': 0, 'label': 'Pick List', 'type': 'main'},
+    'Pack Items': {'x': 6, 'y': 0, 'z': 0, 'label': 'Pack', 'type': 'main'},
+    'Generate Shipping Label': {'x': 10, 'y': 0, 'z': 0, 'label': 'Ship Label', 'type': 'main'},
+    'Ship Order': {'x': 14, 'y': 0, 'z': 0, 'label': 'Ship', 'type': 'main'},
+    'Generate Invoice': {'x': 18, 'y': 0, 'z': 0, 'label': 'Invoice', 'type': 'main'},
+    
+    # Deviations - positioned BETWEEN main events for rectangular box flow
+    # Reject Order: Between Approve and Schedule (x=-4, between -6 and -2)
+    'Reject Order': {'x': -4, 'y': 0, 'z': -4, 'label': 'Reject', 'type': 'deviation'},
+    
+    # Apply Discount: Between Schedule and Pick List (x=0, between -2 and 2)
+    'Apply Discount': {'x': 0, 'y': 0, 'z': 4, 'label': 'Discount', 'type': 'deviation'},
+    
+    # Process Return Request: Between Ship and Invoice (x=16, between 14 and 18)
+    'Process Return Request': {'x': 16, 'y': 0, 'z': 4, 'label': 'Returns', 'type': 'deviation'},
 }
 
-# Supplier location coordinates (arranged around the perimeter)
+# Supplier location coordinates (arranged along top and bottom edges)
 SUPPLIER_LOCATIONS = {
-    'S001': {'x': -18, 'y': 0, 'z': -8, 'label': 'Global Office Solutions', 'country': 'USA'},
-    'S002': {'x': -18, 'y': 0, 'z': -6, 'label': 'TechSource Electronics', 'country': 'USA'},
-    'S003': {'x': -18, 'y': 0, 'z': -4, 'label': 'Premier Furniture Co.', 'country': 'USA'},
-    'S004': {'x': -20, 'y': 0, 'z': -2, 'label': 'Pacific Supplies Ltd.', 'country': 'China'},
-    'S005': {'x': -20, 'y': 0, 'z': 0, 'label': 'EuroTech GmbH', 'country': 'Germany'},
-    'S006': {'x': -20, 'y': 0, 'z': 2, 'label': 'National Print Supply', 'country': 'USA'},
-    'S007': {'x': -18, 'y': 0, 'z': 4, 'label': 'Asian Trade Partners', 'country': 'Singapore'},
-    'S008': {'x': -18, 'y': 0, 'z': 6, 'label': 'Metro Storage Systems', 'country': 'USA'},
-    'S009': {'x': -16, 'y': 0, 'z': 8, 'label': 'Nordic Furniture AB', 'country': 'Sweden'},
-    'S010': {'x': -14, 'y': 0, 'z': 9, 'label': 'Quantum Computing Supplies', 'country': 'USA'},
-    'S011': {'x': -12, 'y': 0, 'z': 9, 'label': 'MicroParts Inc.', 'country': 'Taiwan'},
-    'S012': {'x': -10, 'y': 0, 'z': 9, 'label': 'Southern Office Depot', 'country': 'USA'},
-    'S013': {'x': -8, 'y': 0, 'z': 9, 'label': 'Global Supplies Network', 'country': 'UAE'},
-    'S014': {'x': -6, 'y': 0, 'z': 9, 'label': 'Eco-Friendly Products Co.', 'country': 'Canada'},
-    'S015': {'x': -4, 'y': 0, 'z': 9, 'label': 'Premium Electronics Ltd.', 'country': 'Japan'},
-    'S016': {'x': -2, 'y': 0, 'z': 9, 'label': 'FastShip Supplies', 'country': 'Mexico'},
+    # Top row (z = 8)
+    'S001': {'x': -16, 'y': 0, 'z': 8, 'label': 'Global Office', 'country': 'USA'},
+    'S002': {'x': -12, 'y': 0, 'z': 8, 'label': 'TechSource', 'country': 'USA'},
+    'S003': {'x': -8, 'y': 0, 'z': 8, 'label': 'Premier Furn', 'country': 'USA'},
+    'S004': {'x': -4, 'y': 0, 'z': 8, 'label': 'Pacific', 'country': 'China'},
+    'S005': {'x': 0, 'y': 0, 'z': 8, 'label': 'EuroTech', 'country': 'Germany'},
+    'S006': {'x': 4, 'y': 0, 'z': 8, 'label': 'Natl Print', 'country': 'USA'},
+    'S007': {'x': 8, 'y': 0, 'z': 8, 'label': 'Asian Trade', 'country': 'Singapore'},
+    'S008': {'x': 12, 'y': 0, 'z': 8, 'label': 'Metro Storage', 'country': 'USA'},
+    # Bottom row (z = -8)
+    'S009': {'x': -16, 'y': 0, 'z': -8, 'label': 'Nordic Furn', 'country': 'Sweden'},
+    'S010': {'x': -12, 'y': 0, 'z': -8, 'label': 'Quantum', 'country': 'USA'},
+    'S011': {'x': -8, 'y': 0, 'z': -8, 'label': 'MicroParts', 'country': 'Taiwan'},
+    'S012': {'x': -4, 'y': 0, 'z': -8, 'label': 'Southern', 'country': 'USA'},
+    'S013': {'x': 0, 'y': 0, 'z': -8, 'label': 'Global Net', 'country': 'UAE'},
+    'S014': {'x': 4, 'y': 0, 'z': -8, 'label': 'Eco-Friendly', 'country': 'Canada'},
+    'S015': {'x': 8, 'y': 0, 'z': -8, 'label': 'Premium Elec', 'country': 'Japan'},
+    'S016': {'x': 12, 'y': 0, 'z': -8, 'label': 'FastShip', 'country': 'Mexico'},
 }
 
 # Category to color mapping for items
@@ -104,53 +271,82 @@ def generate_item_paths(
     items: List[Dict[str, Any]],
     item_supplier_map: Dict[str, str],
     keyframes: List[Dict[str, Any]],
-    items_df: pd.DataFrame
+    items_df: pd.DataFrame,
+    activity_positions: Dict[str, Dict[str, Any]],
+    supplier_positions: Dict[str, Dict[str, Any]]
 ) -> List[Dict[str, Any]]:
     """
-    Generate animation paths for items from suppliers to warehouse
+    Generate animation paths for items from suppliers to order sphere.
+    Items converge at warehouse if it exists, otherwise at order approval point.
     
     Args:
         items: List of item dictionaries
         item_supplier_map: Mapping of item_id to supplier_id
         keyframes: Order event keyframes
         items_df: DataFrame with item information (for category lookup)
+        activity_positions: Dynamic positions for activities
+        supplier_positions: Dynamic positions for suppliers
         
     Returns:
         List of item path dictionaries with animation data
     """
     item_paths = []
     
-    # Find warehouse arrival time (Generate Pick List event)
-    warehouse_time = 180.0  # Default
-    pack_time = 240.0  # Default
+    # Check if warehouse and pack events exist in this order
+    has_warehouse = 'Generate Pick List' in activity_positions
+    has_pack = 'Pack Items' in activity_positions
+    has_approve = 'Approve Order' in activity_positions
+    
+    # Determine convergence point based on which events exist
+    if has_warehouse:
+        # Items converge at warehouse when order reaches there
+        convergence_event = 'Generate Pick List'
+        merge_event = 'Pack Items' if has_pack else 'Generate Pick List'
+    elif has_approve:
+        # Items converge after order approval if no warehouse
+        convergence_event = 'Approve Order'
+        merge_event = 'Approve Order'
+    else:
+        # Fallback to first event
+        convergence_event = keyframes[0]['event'] if keyframes else None
+        merge_event = convergence_event
+    
+    # Find convergence and merge times from keyframes
+    convergence_time = 180.0  # Default
+    merge_time = 240.0  # Default
     
     for kf in keyframes:
-        if kf['event'] == 'Generate Pick List':
-            warehouse_time = kf['time']
-        elif kf['event'] == 'Pack Items':
-            pack_time = kf['time']
+        if kf['event'] == convergence_event:
+            convergence_time = kf['time']
+        if kf['event'] == merge_event:
+            merge_time = kf['time']
     
-    warehouse_loc = LOCATIONS.get('Generate Pick List', {'x': 2, 'y': 0, 'z': -2})
-    pack_loc = LOCATIONS.get('Pack Items', {'x': 4, 'y': 0, 'z': -3})
+    # Get convergence and merge locations (where order sphere will be)
+    convergence_loc = activity_positions.get(convergence_event, {'x': 0, 'y': 0, 'z': 0})
+    merge_loc = activity_positions.get(merge_event, convergence_loc)
     
     for item in items:
         item_id = item.get('item_id', '')
         supplier_id = item_supplier_map.get(item_id, 'S001')
         
         # Get supplier location
-        supplier_loc = SUPPLIER_LOCATIONS.get(supplier_id, {'x': -18, 'y': 0, 'z': 0})
+        supplier_loc = supplier_positions.get(supplier_id, {'x': -18, 'y': 0, 'z': 0, 'label': supplier_id, 'country': 'USA'})
         
         # Get item category for color
         item_row = items_df[items_df['item_id'] == item_id]
         category = item_row['category'].iloc[0] if len(item_row) > 0 else 'Others'
         color = CATEGORY_COLORS.get(category, CATEGORY_COLORS['Others'])
         
-        # Calculate transit time based on distance (longer for international suppliers)
-        transit_duration = 60.0  # Default 60 seconds
-        if supplier_loc.get('country') not in ['USA', 'Canada', 'Mexico']:
-            transit_duration = 120.0  # 2 minutes for international
+        # Fixed transit time for all suppliers (so timing is consistent)
+        transit_duration = 40.0  # 40 seconds transit time for all
         
-        departure_time = max(0, warehouse_time - transit_duration - 30)  # Leave supplier early
+        # Stagger departure times - 15 seconds between each item for clear separation
+        item_offset = items.index(item) * 15  # 15 seconds between items
+        departure_time = max(0, convergence_time - transit_duration - 60 + item_offset)
+        arrival_time = departure_time + transit_duration
+        
+        # Label based on convergence type
+        convergence_label = 'Warehouse' if has_warehouse else 'Order Approval'
         
         # Create item animation path
         item_path = {
@@ -175,22 +371,22 @@ def generate_item_paths(
                     'status': 'in_transit'
                 },
                 {
-                    'time': warehouse_time - 10,
-                    'position': [warehouse_loc['x'], 0, warehouse_loc['z']],
-                    'label': 'Arrived at Warehouse',
+                    'time': arrival_time,
+                    'position': [convergence_loc['x'], 0, convergence_loc['z']],
+                    'label': f'Arrived at {convergence_label}',
                     'status': 'arrived'
                 },
                 {
-                    'time': pack_time - 5,
-                    'position': [warehouse_loc['x'], 0, warehouse_loc['z']],
-                    'label': 'Moving to Packing',
+                    'time': merge_time - 2,
+                    'position': [convergence_loc['x'], 0, convergence_loc['z']],
+                    'label': 'Moving to Order',
                     'status': 'ready'
                 },
                 {
-                    'time': pack_time,
-                    'position': [pack_loc['x'], 0, pack_loc['z']],
-                    'label': 'Being Packed',
-                    'status': 'packing'
+                    'time': merge_time,
+                    'position': [merge_loc['x'], 0, merge_loc['z']],
+                    'label': 'Merged with Order',
+                    'status': 'merged'
                 }
             ]
         }
@@ -233,16 +429,45 @@ def generate_gltf_for_case(
         # Ensure export directory exists
         export_dir.mkdir(parents=True, exist_ok=True)
         
-        # Parse events and create animation keyframes
-        keyframes = []
-        min_time = None
-        max_time = None
+        # Get unique activities from this case
+        unique_activities = []
+        for event in events:
+            event_name = event.get('event_name', event.get('Activity', ''))
+            if event_name and event_name not in unique_activities:
+                unique_activities.append(event_name)
         
-        for i, event in enumerate(events):
+        # Define most frequent variant (baseline O2C process)
+        most_frequent_variant = [
+            'Receive Customer Order',
+            'Validate Customer Order',
+            'Perform Credit Check',
+            'Approve Order',
+            'Schedule Order Fulfillment',
+            'Generate Pick List',
+            'Pack Items',
+            'Generate Shipping Label',
+            'Ship Order',
+            'Generate Invoice'
+        ]
+        
+        # Filter to only activities that actually exist in this case
+        main_flow = [a for a in most_frequent_variant if a in unique_activities]
+        
+        # Generate dynamic activity positions
+        activity_positions = generate_dynamic_activity_positions(unique_activities, main_flow)
+        
+        # Get unique suppliers and generate dynamic positions
+        unique_suppliers = list(set(suppliers))
+        supplier_positions = generate_dynamic_supplier_positions(unique_suppliers)
+        
+        # Parse events and create animation keyframes
+        # First pass: collect all timestamps to find true min/max
+        parsed_events = []
+        for event in events:
             event_name = event.get('event_name', event.get('Activity', ''))
             timestamp = event.get('timestamp', event.get('Timestamp', None))
             
-            if not event_name or event_name not in LOCATIONS:
+            if not event_name or event_name not in activity_positions:
                 continue
                 
             # Parse timestamp
@@ -254,24 +479,35 @@ def generate_gltf_for_case(
             else:
                 dt = timestamp if timestamp else datetime.now()
             
-            if min_time is None:
-                min_time = dt
-                
-            max_time = dt
-            
-            # Calculate time offset in seconds from start
-            time_offset = (dt - min_time).total_seconds()
-            
-            # Get location for this event
-            loc = LOCATIONS[event_name]
+            parsed_events.append({
+                'name': event_name,
+                'dt': dt,
+                'loc': activity_positions[event_name]
+            })
+        
+        # Find true min and max times
+        if parsed_events:
+            min_time = min(pe['dt'] for pe in parsed_events)
+            max_time = max(pe['dt'] for pe in parsed_events)
+        else:
+            min_time = datetime.now()
+            max_time = datetime.now()
+        
+        # Second pass: create keyframes with correct time offsets
+        keyframes = []
+        for pe in parsed_events:
+            time_offset = (pe['dt'] - min_time).total_seconds()
             
             keyframes.append({
                 'time': time_offset,
-                'position': [loc['x'], loc['y'], loc['z']],
-                'event': event_name,
-                'label': loc['label'],
-                'timestamp': dt.isoformat()
+                'position': [pe['loc']['x'], pe['loc']['y'], pe['loc']['z']],
+                'event': pe['name'],
+                'label': pe['loc']['label'],
+                'timestamp': pe['dt'].isoformat()
             })
+        
+        # Sort keyframes by time to ensure chronological order
+        keyframes.sort(key=lambda kf: kf['time'])
         
         # Calculate total duration
         total_duration = (max_time - min_time).total_seconds() if max_time and min_time else 0
@@ -284,7 +520,7 @@ def generate_gltf_for_case(
         item_supplier_map = get_item_supplier_mapping(case_id, data_dir)
         
         # Generate item animation paths
-        item_paths = generate_item_paths(items, item_supplier_map, keyframes, items_df)
+        item_paths = generate_item_paths(items, item_supplier_map, keyframes, items_df, activity_positions, supplier_positions)
         
         # Build complete scene data (convert numpy types to native Python types)
         scene_data = {
@@ -323,9 +559,10 @@ def generate_gltf_for_case(
                 {
                     'name': event_name,
                     'label': loc['label'],
+                    'type': loc.get('type', 'main'),
                     'position': [loc['x'], loc['y'], loc['z']],
                 }
-                for event_name, loc in LOCATIONS.items()
+                for event_name, loc in activity_positions.items()
             ],
             'item_paths': item_paths,
             'supplier_locations': [
@@ -335,8 +572,7 @@ def generate_gltf_for_case(
                     'country': loc['country'],
                     'position': [loc['x'], loc['y'], loc['z']],
                 }
-                for supplier_id, loc in SUPPLIER_LOCATIONS.items()
-                if supplier_id in item_supplier_map.values()
+                for supplier_id, loc in supplier_positions.items()
             ],
         }
         

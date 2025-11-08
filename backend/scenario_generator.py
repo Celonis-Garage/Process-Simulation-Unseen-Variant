@@ -75,24 +75,31 @@ class ScenarioGenerator:
         self,
         activities: List[str],
         num_users: int = None,
-        num_items: int = None
+        num_items: int = None,
+        session_seed: int = None
     ) -> Tuple[List[str], List[Dict], List[str], float]:
         """
-        Generate deterministic entity assignments for a scenario
-        Uses a seed based on the activity list to ensure consistency
+        Generate deterministic entity assignments for a scenario.
         
         Args:
             activities: List of activity names in the process
             num_users: Number of users to assign (default: deterministic 3)
             num_items: Number of items to assign (default: deterministic 5)
+            session_seed: Fixed seed for the session (if None, uses hash of activities)
         
         Returns:
             Tuple of (user_ids, items_data, supplier_ids, order_value)
         """
-        # Create a deterministic seed from the activities list
-        # This ensures the same process always gets the same entities
-        activities_str = '|'.join(sorted(activities))
-        seed = hash(activities_str) % (2**31)  # Use hash of activities as seed
+        # Use session seed if provided, otherwise hash of activities
+        if session_seed is not None:
+            seed = session_seed
+            logger.debug(f"Using session seed: {seed}")
+        else:
+            # Fallback to activity-based seed (backward compatibility)
+            activities_str = '|'.join(sorted(activities))
+            seed = hash(activities_str) % (2**31)
+            logger.debug(f"Using activity-based seed: {seed}")
+        
         random.seed(seed)
         np.random.seed(seed)
         

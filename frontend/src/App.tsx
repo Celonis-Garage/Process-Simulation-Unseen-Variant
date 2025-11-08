@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { TopBar } from './components/TopBar';
 import { PromptPanel } from './components/PromptPanel';
 import { ProcessExplorer } from './components/ProcessExplorer';
@@ -303,100 +303,36 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [simulationResults, setSimulationResults] = useState<any>(null);
   const [isSimulating, setIsSimulating] = useState(false);
+  
+  // History for undo/redo functionality
+  const [history, setHistory] = useState<Array<{
+    steps: ProcessStep[];
+    edges: ProcessEdge[];
+    eventLogs: EventLog[];
+    variantName: string;
+  }>>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+  const isUndoRedoAction = useRef(false); // Flag to prevent saving during undo/redo
 
-  // Fetch initial data from backend
+  // Fetch initial data from backend - DISABLED for context-aware selection
+  // The process explorer now starts empty until user selects a variant via prompt
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
         setIsLoading(true);
         setError(null);
-        console.log('Fetching initial process data from backend...');
+        console.log('🎯 Context-aware mode: Process explorer starts empty');
+        console.log('💡 User will select initial variant via prompt');
 
-        // Fetch the most frequent variant
-        const variantData = await getMostFrequentVariant();
-
-        // Cache steps for fallback
-        cachedFallbackSteps = variantData.steps;
-
-        // Fetch real process flow metrics for edges
-        const flowMetrics = await getProcessFlowMetrics();
-        console.log('Received flow metrics:', flowMetrics);
-
-        // Build a map of step names to IDs
-        const stepNameToId: { [key: string]: string } = {};
-        variantData.steps.forEach(step => {
-          stepNameToId[step.name] = step.id;
-        });
-
-        // Convert flow metrics to ProcessEdge format
-        const processEdges: ProcessEdge[] = variantData.edges.map((edge, index) => {
-          const fromActivity = variantData.steps.find(s => s.id === edge.source)?.name || '';
-          const toActivity = variantData.steps.find(s => s.id === edge.target)?.name || '';
-          
-          // Find matching flow metric
-          const flowMetric = flowMetrics.edges.find(
-            e => e.from === fromActivity && e.to === toActivity
-          );
-
-          return {
-            from: edge.source,
-            to: edge.target,
-            cases: flowMetric?.cases || 100,
-            avgDays: flowMetric?.avg_days || 0.1
-          };
-        });
-
-        cachedFallbackEdges = processEdges;
-
-        // Set steps and edges from variant
-        setSteps(variantData.steps);
-        setEdges(processEdges);
-
-        // Fetch event log
-        const activities = variantData.steps
-          .filter(s => s.id !== 'start' && s.id !== 'end')
-          .map(s => s.name);
-
-        const eventLogResponse = await generateEventLog({
-          activities,
-          edges: [],
-          kpis: {}
-        });
-
-        console.log('Received event log:', eventLogResponse);
-
-        // Transform backend event log to frontend EventLog format
-        if (eventLogResponse.event_log && eventLogResponse.event_log.length > 0) {
-          const transformedLogs: EventLog[] = eventLogResponse.event_log.map((log: any) => ({
-            caseId: log['Case ID'] || log.case_id || 'Unknown',
-            activity: log.Activity || log.activity || 'Unknown',
-            timestamp: log.Timestamp || log.timestamp || new Date().toISOString(),
-            throughputTime: log['Throughput Time']?.toString() + 'h' || '0h',
-            cost: '$' + (log.Cost || log.cost || 0).toFixed(2),  // ✅ Use Cost field from backend
-            resource: getResourceForStep(log.Activity || log.activity || 'System')
-          }));
-          setEventLogs(transformedLogs);
-        } else {
-          // Fallback to generated logs if backend returns empty
-          const fallbackLogs = generateEventLogsFromSteps(variantData.steps);
-          setEventLogs(fallbackLogs);
-        }
-
-        // Update base KPIs with the loaded data
-        const loadedLogs = generateEventLogsFromSteps(variantData.steps);
-        baseKPIs = calculateKPIs(loadedLogs, variantData.steps);
-
-        setIsLoading(false);
-      } catch (err: any) {
-        console.error('Error fetching initial data:', err);
-        setError(err.message || 'Failed to load process data from backend');
+        // REMOVED: Auto-load of most frequent variant
+        // All the variant loading logic is now triggered by user's prompt via select_variant action
         
-        // Fallback to cached data (most frequent variant from previous load or default)
-        console.log('Falling back to cached most frequent variant...');
-        setSteps(cachedFallbackSteps);
-        setEdges(cachedFallbackEdges);
-        setEventLogs(generateEventLogsFromSteps(cachedFallbackSteps));
-        setVariantName('Most Frequent Variant (Cached)');
+        // Just mark loading as complete - process explorer will show empty state
+        setIsLoading(false);
+        console.log('✅ Ready for user to select a process variant');
+      } catch (err: any) {
+        console.error('Error during initialization:', err);
+        // No fallback needed - we start empty
         setIsLoading(false);
       }
     };
@@ -414,7 +350,11 @@ export default function App() {
     const afterIndex = steps.findIndex(s => s.id === afterStepId);
     const nextStep = steps[afterIndex + 1];
     
-    const newStepId = stepName.toLowerCase().replace(/\s+/g, '-');
+    // Generate unique ID to allow duplicate activities (for loops/rework)
+    const baseId = stepName.toLowerCase().replace(/\s+/g, '-');
+    const timestamp = Date.now();
+    const newStepId = `${baseId}-${timestamp}`;
+    
     const newStep: ProcessStep = {
       id: newStepId,
       name: stepName,
@@ -462,12 +402,72 @@ export default function App() {
             resource: getResourceForStep(log.Activity || log.activity || 'System')
           }));
           setEventLogs(transformedLogs);
+          
+          // Save to history with the NEW event logs
+          setTimeout(() => {
+            if (!isUndoRedoAction.current) {
+              // Capture state with new event logs
+              setHistory(prev => {
+                const newState = {
+                  steps: JSON.parse(JSON.stringify(newSteps)),
+                  edges: JSON.parse(JSON.stringify(newEdges)),
+                  eventLogs: JSON.parse(JSON.stringify(transformedLogs)),
+                  variantName: 'Modified Variant'
+                };
+                const newHistory = prev.slice(0, historyIndex + 1);
+                newHistory.push(newState);
+                console.log('✅ Saved to history after add, new historyIndex:', newHistory.length - 1);
+                return newHistory.length > 10 ? newHistory.slice(1) : newHistory;
+              });
+              setHistoryIndex(prev => Math.min(prev + 1, 9));
+            }
+          }, 100);
         } else {
-          setEventLogs(generateEventLogsFromSteps(newSteps));
+          const fallbackLogs = generateEventLogsFromSteps(newSteps);
+          setEventLogs(fallbackLogs);
+          
+          // Save with fallback logs
+          setTimeout(() => {
+            if (!isUndoRedoAction.current) {
+              setHistory(prev => {
+                const newState = {
+                  steps: JSON.parse(JSON.stringify(newSteps)),
+                  edges: JSON.parse(JSON.stringify(newEdges)),
+                  eventLogs: JSON.parse(JSON.stringify(fallbackLogs)),
+                  variantName: 'Modified Variant'
+                };
+                const newHistory = prev.slice(0, historyIndex + 1);
+                newHistory.push(newState);
+                console.log('✅ Saved to history after add (fallback), new historyIndex:', newHistory.length - 1);
+                return newHistory.length > 10 ? newHistory.slice(1) : newHistory;
+              });
+              setHistoryIndex(prev => Math.min(prev + 1, 9));
+            }
+          }, 100);
         }
       } catch (error) {
         console.error('Error fetching event logs:', error);
-        setEventLogs(generateEventLogsFromSteps(newSteps));
+        const fallbackLogs = generateEventLogsFromSteps(newSteps);
+        setEventLogs(fallbackLogs);
+        
+        // Save even if error occurs
+        setTimeout(() => {
+          if (!isUndoRedoAction.current) {
+            setHistory(prev => {
+              const newState = {
+                steps: JSON.parse(JSON.stringify(newSteps)),
+                edges: JSON.parse(JSON.stringify(newEdges)),
+                eventLogs: JSON.parse(JSON.stringify(fallbackLogs)),
+                variantName: 'Modified Variant'
+              };
+              const newHistory = prev.slice(0, historyIndex + 1);
+              newHistory.push(newState);
+              console.log('✅ Saved to history after add (error), new historyIndex:', newHistory.length - 1);
+              return newHistory.length > 10 ? newHistory.slice(1) : newHistory;
+            });
+            setHistoryIndex(prev => Math.min(prev + 1, 9));
+          }
+        }, 100);
       }
     })();
 
@@ -483,7 +483,9 @@ export default function App() {
       text: `Added new step: '${stepName}' between '${steps[afterIndex].name}' and '${nextStep?.name || 'End'}'.`
     }]);
 
-    // Clear new flag after animation
+    // DON'T save here - save happens in async callback above
+    
+    // Clear isNew flag after animation (but don't save again)
     setTimeout(() => {
       setSteps(prev => prev.map(s => ({ ...s, isNew: false })));
     }, 2000);
@@ -652,6 +654,121 @@ export default function App() {
     })();
   };
 
+  // Save current state to history
+  const saveToHistory = () => {
+    if (steps.length === 0) return; // Don't save empty state
+    
+    const newState = {
+      steps: JSON.parse(JSON.stringify(steps)),
+      edges: JSON.parse(JSON.stringify(edges)),
+      eventLogs: JSON.parse(JSON.stringify(eventLogs)),
+      variantName
+    };
+    
+    // Remove future history if we're not at the end
+    const newHistory = history.slice(0, historyIndex + 1);
+    newHistory.push(newState);
+    
+    // Limit history to 10 states to save memory
+    if (newHistory.length > 10) {
+      newHistory.shift();
+      setHistory(newHistory);
+      setHistoryIndex(newHistory.length - 1);
+    } else {
+      setHistory(newHistory);
+      setHistoryIndex(newHistory.length - 1);
+    }
+  };
+  
+  // Undo functionality
+  const handleUndo = () => {
+    if (historyIndex > 0) {
+      isUndoRedoAction.current = true; // Mark as undo/redo to prevent auto-save
+      const prevState = history[historyIndex - 1];
+      setSteps(prevState.steps);
+      setEdges(prevState.edges);
+      setEventLogs(prevState.eventLogs);
+      setVariantName(prevState.variantName);
+      setHistoryIndex(historyIndex - 1);
+      
+      setMessages(prev => [...prev, {
+        type: 'ai',
+        text: '↶ Undo: Reverted to previous state'
+      }]);
+      
+      // Reset flag after state updates complete
+      setTimeout(() => { isUndoRedoAction.current = false; }, 0);
+    }
+  };
+  
+  // Redo functionality
+  const handleRedo = () => {
+    if (historyIndex < history.length - 1) {
+      isUndoRedoAction.current = true; // Mark as undo/redo to prevent auto-save
+      const nextState = history[historyIndex + 1];
+      setSteps(nextState.steps);
+      setEdges(nextState.edges);
+      setEventLogs(nextState.eventLogs);
+      setVariantName(nextState.variantName);
+      setHistoryIndex(historyIndex + 1);
+      
+      setMessages(prev => [...prev, {
+        type: 'ai',
+        text: '↷ Redo: Restored next state'
+      }]);
+      
+      // Reset flag after state updates complete
+      setTimeout(() => { isUndoRedoAction.current = false; }, 0);
+    }
+  };
+  
+  // Reset functionality
+  const handleReset = () => {
+    if (window.confirm('Reset process to empty state? This will clear all activities and history.')) {
+      setSteps([]);
+      setEdges([]);
+      setEventLogs([]);
+      setVariantName('');
+      setHistory([]);
+      setHistoryIndex(-1);
+      setProcessChanges([]);
+      setMessages([{
+        type: 'ai',
+        text: '🔄 Process reset. Start fresh by describing a new process scenario.'
+      }]);
+    }
+  };
+  
+  // Keyboard shortcuts for undo/redo
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        handleUndo();
+      } else if ((e.ctrlKey || e.metaKey) && e.key === 'z' && e.shiftKey) {
+        e.preventDefault();
+        handleRedo();
+      } else if ((e.ctrlKey || e.metaKey) && e.key === 'y') {
+        e.preventDefault();
+        handleRedo();
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [historyIndex, history]);
+  
+  // DISABLED: Auto-save causes issues with animations and async operations
+  // Instead, we save manually after each user action completes
+  // useEffect(() => {
+  //   if (!isUndoRedoAction.current && steps.length > 0 && steps.filter(s => s.id !== 'start' && s.id !== 'end').length > 0) {
+  //     const timeoutId = setTimeout(() => {
+  //       saveToHistory();
+  //     }, 100);
+  //     return () => clearTimeout(timeoutId);
+  //   }
+  // }, [steps, edges, eventLogs]);
+
   const handleSimulate = async () => {
     try {
       setIsSimulating(true);
@@ -660,6 +777,16 @@ export default function App() {
       const activities = steps
         .filter(step => step.id !== 'start' && step.id !== 'end')
         .map(step => step.name);
+      
+      // Validation: Don't allow simulation if no activities
+      if (activities.length === 0) {
+        setMessages(prev => [...prev, {
+          type: 'ai',
+          text: '⚠️ Cannot simulate: No process activities defined. Please select a process variant first.'
+        }]);
+        setIsSimulating(false);
+        return;
+      }
       
       // Build edges array (simplified format for API)
       const processEdges = edges.map(edge => ({
@@ -744,6 +871,78 @@ export default function App() {
       console.log('Parsed response:', response);
       
       // Handle different action types
+      
+      // 🎯 NEW: Handle select_variant action (initial process selection)
+      if (response.action === 'select_variant') {
+        console.log('✨ Variant selection:', response.variant_id);
+        const activities = response.activities || [];
+        
+        if (activities.length === 0) {
+          setMessages(prev => [...prev, {
+            type: 'ai',
+            text: 'No variant found. Please describe the type of process you want to see.'
+          }]);
+          return;
+        }
+        
+        // Build steps from activities
+        const newSteps: ProcessStep[] = [
+          { id: 'start', name: 'Start', avgTime: '-', avgCost: '-' },
+          ...activities.map((actName: string, i: number) => ({
+            id: `step-${i + 1}`,
+            name: actName,
+            avgTime: '1m',  // Default values
+            avgCost: '$0.5',
+            isNew: false
+          })),
+          { id: 'end', name: 'End', avgTime: '-', avgCost: '-' }
+        ];
+        
+        // Build sequential edges
+        const newEdges: ProcessEdge[] = [];
+        for (let i = 0; i < newSteps.length - 1; i++) {
+          newEdges.push({
+            from: newSteps[i].id,
+            to: newSteps[i + 1].id,
+            cases: 100,
+            avgDays: 0.1
+          });
+        }
+        
+        // Update state
+        setSteps(newSteps);
+        setEdges(newEdges);
+        setVariantName(response.variant_id || 'Selected Variant');
+        
+        // Generate event logs
+        const logs = generateEventLogsFromSteps(newSteps);
+        setEventLogs(logs);
+        
+        // Update base KPIs
+        baseKPIs = calculateKPIs(logs, newSteps);
+        
+        // Add AI response with explanation and suggested prompts
+        const suggestedPromptsText = response.suggested_prompts && response.suggested_prompts.length > 0
+          ? `\n\n💡 Try these next:\n${response.suggested_prompts.map((p: string) => `  • ${p}`).join('\n')}`
+          : '';
+        
+        setMessages(prev => [...prev, {
+          type: 'ai',
+          text: `✅ ${response.explanation || 'Process loaded successfully'}${suggestedPromptsText}`
+        }]);
+        
+        // Save to history after variant loads
+        setTimeout(() => {
+          if (!isUndoRedoAction.current) {
+            saveToHistory();
+            console.log('✅ Saved to history after variant selection, historyIndex should be 0');
+          }
+        }, 100);
+        
+        console.log('✅ Variant loaded successfully with', activities.length, 'activities');
+        return;
+      }
+      
       if (response.action === 'remove_step') {
         const activityName = response.activity || '';
         console.log('Remove step action:', { response, activityName, availableSteps: steps.map(s => s.name) });
@@ -785,11 +984,19 @@ export default function App() {
           }
         }
         
+        // Check if this activity already exists (creating a loop/rework scenario)
+        const isDuplicate = steps.some(s => s.name === newActivity && s.id !== 'start' && s.id !== 'end');
+        
         handleAddStep(referenceStepId, newActivity);
-        setVariantName(`Optimized: Added ${newActivity}`);
+        setVariantName(`Optimized: Added ${newActivity}${isDuplicate ? ' (Loop)' : ''}`);
+        
+        const duplicateMessage = isDuplicate 
+          ? ` This creates a rework/quality loop - '${newActivity}' now appears multiple times in the process, which is common for quality checks, retries, or iterative approval scenarios.`
+          : ' This may increase cycle time but could improve quality or compliance.';
+        
         setMessages(prev => [...prev, {
           type: 'ai',
-          text: `✓ Added step: '${newActivity}' to the process. This may increase cycle time but could improve quality or compliance.`
+          text: `✓ Added step: '${newActivity}' to the process.${duplicateMessage}`
         }]);
       }
       else if (response.action === 'modify_kpi') {
@@ -984,6 +1191,7 @@ export default function App() {
               <PromptPanel 
                 messages={messages}
                 onPromptSubmit={handlePromptSubmit}
+                isProcessEmpty={steps.filter(s => s.id !== 'start' && s.id !== 'end').length === 0}
               />
             </ResizablePanel>
             
@@ -1044,6 +1252,46 @@ export default function App() {
     <div className="flex flex-col h-screen bg-gray-50">
       <TopBar variantName={variantName} />
       
+      {/* Control Bar with Undo/Redo/Reset */}
+      <div className="border-b border-gray-200 bg-white px-4 py-2 flex items-center gap-2">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleUndo}
+            disabled={historyIndex <= 0}
+            className="px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed rounded transition-colors flex items-center gap-1.5"
+            title="Undo (Ctrl+Z)"
+          >
+            <span className="text-base">↶</span>
+            <span>Undo</span>
+          </button>
+          
+          <button
+            onClick={handleRedo}
+            disabled={historyIndex >= history.length - 1}
+            className="px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed rounded transition-colors flex items-center gap-1.5"
+            title="Redo (Ctrl+Shift+Z)"
+          >
+            <span className="text-base">↷</span>
+            <span>Redo</span>
+          </button>
+          
+          <div className="h-4 w-px bg-gray-300 mx-1"></div>
+          
+          <button
+            onClick={handleReset}
+            className="px-3 py-1.5 text-sm bg-red-50 hover:bg-red-100 text-red-700 rounded transition-colors flex items-center gap-1.5"
+            title="Reset process to empty state"
+          >
+            <span className="text-base">🔄</span>
+            <span>Reset</span>
+          </button>
+        </div>
+        
+        <div className="ml-auto text-xs text-gray-500">
+          {historyIndex >= 0 && `History: ${historyIndex + 1}/${history.length}`}
+        </div>
+      </div>
+      
       <ResizablePanelGroup direction="vertical" className="flex-1">
         {/* Main Workspace */}
         <ResizablePanel defaultSize={70} minSize={40}>
@@ -1053,6 +1301,7 @@ export default function App() {
               <PromptPanel 
                 messages={messages}
                 onPromptSubmit={handlePromptSubmit}
+                isProcessEmpty={steps.filter(s => s.id !== 'start' && s.id !== 'end').length === 0}
               />
             </ResizablePanel>
             

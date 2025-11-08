@@ -4,10 +4,11 @@ LLM service for parsing natural language prompts using Groq API.
 
 import os
 import json
+from pathlib import Path
 from groq import Groq
 from typing import Dict, Any, Optional, List
 from action_schemas import ProcessAction, ActionType
-from llm_prompts import SYSTEM_PROMPT, get_user_prompt, FALLBACK_SUGGESTIONS
+from llm_prompts import SYSTEM_PROMPT, VARIANT_SELECTION_PROMPT, get_user_prompt, FALLBACK_SUGGESTIONS
 import logging
 
 logger = logging.getLogger(__name__)
@@ -31,6 +32,29 @@ class GroqLLMService:
         # Use current Groq models: llama-3.3-70b-versatile (best), llama-3.1-8b-instant (fast), mixtral-8x7b-32768
         self.model = "llama-3.3-70b-versatile"
         
+        # Load variant contexts for initial process selection
+        self.variant_contexts = self._load_variant_contexts()
+        variant_count = len(self.variant_contexts.get('variants', []))
+        logger.info(f"Loaded {variant_count} process variant contexts")
+        if variant_count > 0:
+            logger.info(f"Variant IDs: {[v['variant_id'] for v in self.variant_contexts.get('variants', [])]}")
+    
+    def _load_variant_contexts(self) -> Dict[str, Any]:
+        """Load pre-generated variant contexts from data file."""
+        try:
+            data_dir = Path(__file__).parent.parent / 'data'
+            contexts_path = data_dir / 'variant_contexts.json'
+            
+            if not contexts_path.exists():
+                logger.warning(f"Variant contexts file not found: {contexts_path}")
+                return {"variants": []}
+            
+            with open(contexts_path, 'r') as f:
+                return json.load(f)
+        except Exception as e:
+            logger.error(f"Error loading variant contexts: {e}")
+            return {"variants": []}
+        
     def parse_prompt(
         self, 
         user_prompt: str, 
@@ -39,6 +63,7 @@ class GroqLLMService:
     ) -> Dict[str, Any]:
         """
         Parse user prompt using Groq LLM and return structured action.
+        Handles both initial variant selection and process modifications.
         
         Args:
             user_prompt: User's natural language request
@@ -49,10 +74,17 @@ class GroqLLMService:
             Dictionary with action details (compatible with existing frontend)
         """
         if current_process is None:
-            # Default to empty process (in production, this should come from frontend/session)
             current_process = {"activities": [], "edges": [], "kpis": {}}
         
-        # 🔴 DEBUG: Log what activities are in the current process
+        # Check if this is an initial variant selection (empty process)
+        is_initial_selection = len(current_process.get('activities', [])) == 0
+        
+        if is_initial_selection:
+            logger.info(f"Initial variant selection requested: {user_prompt}")
+            return self._select_initial_variant(user_prompt)
+        
+        # Otherwise, handle as a process modification
+        logger.info(f"Process modification requested: {user_prompt}")
         logger.info(f"Current process activities: {current_process.get('activities', [])}")
         
         try:
@@ -125,21 +157,10 @@ class GroqLLMService:
                     "suggestions": FALLBACK_SUGGESTIONS
                 }
             
-            # 🔴 CRITICAL: Check if activity already exists in current process
-            # If user says "change/set X time" and LLM wrongly returns add_step, catch it here
-            logger.info(f"Checking if '{action.new_activity}' exists in current activities: {current_activities}")
-            
+            # ✅ DUPLICATES ALLOWED: Users can add same activity multiple times (loops/rework)
+            # The LLM prompts have been updated to handle this correctly
             if action.new_activity in current_activities:
-                logger.warning(f"⚠️ LLM returned add_step for existing activity '{action.new_activity}'! Blocking and returning clarification.")
-                return {
-                    "action": "clarification_needed",
-                    "message": f"⚠️ '{action.new_activity}' already exists in the current process. Did you mean to MODIFY its time/cost instead of adding it?\n\n• To change time: 'Set {action.new_activity} time to X hours'\n• To change cost: 'Set {action.new_activity} cost to $X'\n• To add a different activity: Specify the new activity name",
-                    "suggestions": [
-                        f"Set {action.new_activity} time to [X] hours",
-                        f"Set {action.new_activity} cost to $[X]",
-                        "Add [new activity name] after [existing activity]"
-                    ]
-                }
+                logger.info(f"✓ Allowing duplicate activity '{action.new_activity}' - creates loop/rework scenario")
             
             # ✅ STRICT VALIDATION: Reject activities not in dataset
             # Check if the new_activity is in the common activities list (dataset activities)
@@ -154,14 +175,7 @@ class GroqLLMService:
                     ]
                 }
             # Ensure we're not adding an activity that's supposed to be referenced
-            if action.position:
-                ref_activity = action.position.get("after") or action.position.get("before")
-                if ref_activity and action.new_activity.lower() == ref_activity.lower():
-                    return {
-                        "action": "clarification_needed",
-                        "message": f"It seems you want to add '{action.new_activity}', but that activity already exists in the process. Did you mean to add a different activity?",
-                        "suggestions": FALLBACK_SUGGESTIONS
-                    }
+            # Position validation happens later - allow duplicates here
         
         result = {
             "action": action.action,
@@ -194,6 +208,90 @@ class GroqLLMService:
             result["explanation"] = action.explanation
             
         return result
+    
+    def _select_initial_variant(self, user_prompt: str) -> Dict[str, Any]:
+        """
+        Select an initial process variant based on user's description.
+        Uses LLM to match user intent with pre-analyzed variant contexts.
+        
+        Args:
+            user_prompt: User's description of desired process (e.g., "standard order", "rejected order")
+            
+        Returns:
+            Dictionary with select_variant action and suggested next steps
+        """
+        try:
+            # Build variant context summary for LLM
+            variants_summary = []
+            for v in self.variant_contexts.get('variants', []):
+                variants_summary.append({
+                    'variant_id': v['variant_id'],
+                    'activities': v['event_sequence'],
+                    'frequency': f"{v['frequency_percentage']}%",
+                    'keywords': v.get('keywords', []),
+                    'context': v['context']
+                })
+            
+            # Create prompt for variant selection
+            from llm_prompts import get_variant_selection_prompt
+            prompt = get_variant_selection_prompt(user_prompt, variants_summary)
+            
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": VARIANT_SELECTION_PROMPT},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.2,
+                max_tokens=600,
+                response_format={"type": "json_object"}
+            )
+            
+            response_text = response.choices[0].message.content
+            logger.info(f"Variant selection LLM response: {response_text[:200]}...")
+            
+            result = json.loads(response_text)
+            logger.info(f"Parsed JSON result: {json.dumps(result, indent=2)}")
+            
+            # Validate and enrich response
+            selected_id = result.get('selected_variant_id')
+            logger.info(f"Selected variant ID: {selected_id}")
+            
+            if selected_id:
+                # Find the full variant data
+                selected_variant = next(
+                    (v for v in self.variant_contexts.get('variants', []) if v['variant_id'] == selected_id),
+                    None
+                )
+                
+                if selected_variant:
+                    logger.info(f"Found variant {selected_id} with {len(selected_variant['event_sequence'])} activities")
+                    response_data = {
+                        'action': 'select_variant',
+                        'variant_id': selected_id,
+                        'activities': selected_variant['event_sequence'],
+                        'explanation': result.get('explanation', ''),
+                        'confidence': result.get('confidence', 0.8),
+                        'suggested_prompts': result.get('suggested_prompts', [
+                            "Add a quality check step after packing",
+                            "Change the invoice generation time to 1 hour",
+                            "Remove the credit check step"
+                        ])
+                    }
+                    logger.info(f"Returning variant selection: {json.dumps(response_data, indent=2)}")
+                    return response_data
+                else:
+                    logger.warning(f"Variant {selected_id} not found in variant_contexts")
+            
+            # Fallback if no valid variant selected
+            return self._fallback_action(
+                user_prompt,
+                "Could not match your request to a process variant. Please describe the type of order scenario you want (e.g., 'standard fulfillment', 'rejected order', 'order with discount')."
+            )
+            
+        except Exception as e:
+            logger.error(f"Error selecting variant: {e}")
+            return self._fallback_action(user_prompt, f"Error selecting process variant: {str(e)}")
     
     def _fallback_action(self, prompt: str, error: str) -> Dict[str, Any]:
         """Return clarification action when parsing fails."""

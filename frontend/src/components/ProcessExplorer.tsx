@@ -359,6 +359,37 @@ export function ProcessExplorer({ steps, edges, onAddStep, onRemoveStep, onReord
     setZoom(1);
     setPan({ x: 0, y: 0 });
   };
+  
+  // Fullscreen functionality
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  
+  const handleFullscreen = () => {
+    if (!containerRef.current) return;
+    
+    if (!document.fullscreenElement) {
+      containerRef.current.requestFullscreen()
+        .then(() => setIsFullscreen(true))
+        .catch((err) => {
+          console.error('Fullscreen request failed:', err);
+        });
+    } else {
+      document.exitFullscreen()
+        .then(() => setIsFullscreen(false))
+        .catch((err) => {
+          console.error('Exit fullscreen failed:', err);
+        });
+    }
+  };
+  
+  // Listen for fullscreen changes
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
 
   const getEdgeInfo = (fromId: string, toId: string) => {
     return edges.find(e => e.from === fromId && e.to === toId);
@@ -479,11 +510,11 @@ export function ProcessExplorer({ steps, edges, onAddStep, onRemoveStep, onReord
                   <ZoomIn className="w-4 h-4 text-gray-600" />
                 </button>
                 <button
-                  onClick={handleResetZoom}
+                  onClick={handleFullscreen}
                   className="p-1.5 hover:bg-white rounded transition-colors ml-1"
-                  title="Fit to Screen"
+                  title={isFullscreen ? "Exit Fullscreen (Esc)" : "Enter Fullscreen"}
                 >
-                  <Maximize2 className="w-4 h-4 text-gray-600" />
+                  <Maximize2 className={`w-4 h-4 ${isFullscreen ? 'text-blue-600' : 'text-gray-600'}`} />
                 </button>
               </div>
             </div>
@@ -498,16 +529,45 @@ export function ProcessExplorer({ steps, edges, onAddStep, onRemoveStep, onReord
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseLeave}
           >
-            <div className="absolute inset-0 flex items-start justify-center min-w-full min-h-full py-4 px-2">
-              <div 
-                ref={contentRef}
-                className="flex flex-col items-center gap-1 transition-transform duration-150"
-                style={{ 
-                  transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
-                  transformOrigin: 'top center'
-                }}
-              >
-                {steps.map((step, index) => {
+            {/* 🎯 Empty State - Show when no process is selected */}
+            {steps.filter(s => s.id !== 'start' && s.id !== 'end').length === 0 && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="text-center max-w-md px-8">
+                  <div className="mb-6">
+                    <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center">
+                      <svg className="w-12 h-12 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                      </svg>
+                    </div>
+                    <h3 className="text-2xl font-semibold text-gray-900 mb-2">No Process Selected Yet</h3>
+                    <p className="text-gray-600 mb-4">
+                      Describe the process scenario you want to explore using the prompt panel on the left.
+                    </p>
+                  </div>
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-left">
+                    <p className="text-sm font-medium text-blue-900 mb-2">✨ Try saying:</p>
+                    <ul className="text-sm text-blue-800 space-y-1">
+                      <li>• "I want to see a standard order fulfillment process"</li>
+                      <li>• "Show me what happens when an order gets rejected"</li>
+                      <li>• "I need a process where customers get discounts"</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Process Flow - Show when process is loaded */}
+            {steps.filter(s => s.id !== 'start' && s.id !== 'end').length > 0 && (
+              <div className="absolute inset-0 flex items-start justify-center min-w-full min-h-full py-4 px-2">
+                <div 
+                  ref={contentRef}
+                  className="flex flex-col items-center gap-1 transition-transform duration-150"
+                  style={{ 
+                    transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+                    transformOrigin: 'top center'
+                  }}
+                >
+                  {steps.map((step, index) => {
                   const nextStep = steps[index + 1];
                   const edgeInfo = nextStep ? getEdgeInfo(step.id, nextStep.id) : null;
                   const isStart = step.id === 'start';
@@ -531,9 +591,9 @@ export function ProcessExplorer({ steps, edges, onAddStep, onRemoveStep, onReord
                     />
                   );
                 })}
+                </div>
               </div>
-            </div>
-
+            )}
 
           </div>
 

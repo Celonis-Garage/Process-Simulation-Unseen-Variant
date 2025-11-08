@@ -6,6 +6,16 @@ function Timeline({ duration, currentTime, isPlaying, playbackSpeed = 1, onTimeC
   
   const speedOptions = [0.5, 1, 2, 4, 8];
   
+  // Scale keyframe times to match 60-second duration
+  const originalDuration = keyframes && keyframes.length > 0 ? 
+    keyframes[keyframes.length - 1].time : duration;
+  const timeScale = originalDuration / duration;
+  
+  const scaledKeyframes = keyframes.map(kf => ({
+    ...kf,
+    scaledTime: kf.time / timeScale
+  }));
+  
   const handleSpeedClick = () => {
     const currentIndex = speedOptions.indexOf(playbackSpeed);
     const nextIndex = (currentIndex + 1) % speedOptions.length;
@@ -31,14 +41,14 @@ function Timeline({ duration, currentTime, isPlaying, playbackSpeed = 1, onTimeC
   };
 
   const getCurrentEvent = () => {
-    if (!keyframes || keyframes.length === 0) return null;
+    if (!scaledKeyframes || scaledKeyframes.length === 0) return null;
 
-    for (let i = keyframes.length - 1; i >= 0; i--) {
-      if (currentTime >= keyframes[i].time) {
-        return keyframes[i];
+    for (let i = scaledKeyframes.length - 1; i >= 0; i--) {
+      if (currentTime >= scaledKeyframes[i].scaledTime) {
+        return scaledKeyframes[i];
       }
     }
-    return keyframes[0];
+    return scaledKeyframes[0];
   };
 
   const currentEvent = getCurrentEvent();
@@ -89,12 +99,12 @@ function Timeline({ duration, currentTime, isPlaying, playbackSpeed = 1, onTimeC
         
         {/* Keyframe markers */}
         <div className="keyframe-markers">
-          {keyframes.map((kf, idx) => (
+          {scaledKeyframes.map((kf, idx) => (
             <div
               key={idx}
               className="keyframe-marker"
               style={{
-                left: `${(kf.time / duration) * 100}%`,
+                left: `${(kf.scaledTime / duration) * 100}%`,
               }}
               title={`${kf.label} - ${new Date(kf.timestamp).toLocaleTimeString()}`}
             />
@@ -103,19 +113,19 @@ function Timeline({ duration, currentTime, isPlaying, playbackSpeed = 1, onTimeC
       </div>
 
       <div className="timeline-events">
-        {keyframes.map((kf, idx) => (
+        {scaledKeyframes.map((kf, idx) => (
           <div
             key={idx}
-            className={`timeline-event ${currentTime >= kf.time ? 'completed' : ''} ${
+            className={`timeline-event ${currentTime >= kf.scaledTime ? 'completed' : ''} ${
               currentEvent && currentEvent.time === kf.time ? 'active' : ''
             }`}
-            onClick={() => onTimeChange(kf.time)}
+            onClick={() => onTimeChange(kf.scaledTime)}
             title={`Jump to ${kf.label}`}
           >
             <div className="event-dot"></div>
             <div className="event-info">
               <span className="event-label-small">{kf.label}</span>
-              <span className="event-time-small">{formatTime(kf.time)}</span>
+              <span className="event-time-small">{formatTime(kf.scaledTime)}</span>
             </div>
           </div>
         ))}

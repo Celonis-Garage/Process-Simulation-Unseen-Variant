@@ -335,22 +335,34 @@ def enrich_edges_with_durations(
     
     Args:
         activities: List of activity names
-        edges: List of edges (may be missing duration info)
+        edges: List of edges (may be missing duration info or empty)
         activity_kpis: Dict mapping activity names to {'avg_time': hours, 'cost': dollars}
     
     Returns:
         List of edges enriched with duration_hours
     """
+    # If no edges provided, auto-generate sequential edges from activities
+    if not edges and len(activities) > 1:
+        logger.info(f"   🔗 Auto-generating {len(activities)-1} edges from activities sequence")
+        edges = []
+        for i in range(len(activities) - 1):
+            edges.append({
+                'from': activities[i],
+                'to': activities[i + 1],
+                'id': f'edge-{i}'
+            })
+    
     enriched_edges = []
     
     for edge in edges:
         enriched_edge = edge.copy()
         
-        # If duration not already set, use the 'to' activity's avg_time
+        # If duration not already set, use the 'from' activity's avg_time
+        # This matches training where duration_matrix[from_idx, to_idx] = duration_of_from_event
         if 'duration_hours' not in enriched_edge and 'avgDays' not in enriched_edge:
-            to_activity = edge.get('to', '')
-            if to_activity in activity_kpis:
-                enriched_edge['duration_hours'] = activity_kpis[to_activity].get('avg_time', 1.0)
+            from_activity = edge.get('from', '')
+            if from_activity in activity_kpis:
+                enriched_edge['duration_hours'] = activity_kpis[from_activity].get('avg_time', 1.0)
             else:
                 enriched_edge['duration_hours'] = 1.0
         

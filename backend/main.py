@@ -15,6 +15,7 @@ from utils import parse_prompt_mock, graph_to_networkx
 from llm_service import GroqLLMService
 from ml_model import ModelManager
 from scenario_generator import ScenarioGenerator
+from session_manager import get_session_manager
 from feature_extraction import (
     extract_features_from_scenario,
     enrich_edges_with_durations,
@@ -67,6 +68,11 @@ class PromptResponse(BaseModel):
     explanation: Optional[str] = None  # For all responses
     confidence: Optional[float] = None  # Confidence score
     suggestions: Optional[List[str]] = None  # Suggestions for clarification
+    
+    # NEW: Fields for select_variant action (context-aware variant selection)
+    variant_id: Optional[str] = None  # Selected variant ID
+    activities: Optional[List[str]] = None  # List of activity names in the variant
+    suggested_prompts: Optional[List[str]] = None  # Suggested next prompts after variant selection
 
 class SimulationResponse(BaseModel):
     # Baseline KPIs (before changes)
@@ -108,6 +114,10 @@ except Exception as e:
     logger.warning(f"⚠️ LLM Service initialization failed: {e}")
     logger.warning("⚠️ Falling back to regex-based parser")
     llm_service = None
+
+# Initialize Session Manager for entity consistency
+session_manager = get_session_manager()
+logger.info("✅ Session Manager initialized")
 
 
 @app.on_event("startup")
@@ -320,10 +330,12 @@ async def parse_prompt(request: PromptRequest):
         # Use LLM service if available, otherwise fall back to regex
         if llm_service:
             logger.info(f"🤖 Using LLM service for prompt: {request.prompt}")
+            logger.info(f"Current process: {request.current_process}")
             result = llm_service.parse_prompt(
                 user_prompt=request.prompt,
                 current_process=request.current_process
             )
+            logger.info(f"LLM result action: {result.get('action')}")
         else:
             logger.info(f"📝 Using regex parser for prompt: {request.prompt}")
             result = parse_prompt_mock(request.prompt)
@@ -398,38 +410,36 @@ async def simulate_process(request: SimulationRequest):
                 'Pack Items', 'Generate Shipping Label', 'Ship Order', 'Generate Invoice'
             ]
             
-            is_baseline_process = sorted(activities) == sorted(baseline_activities)
+            # Check if activities match baseline
+            is_baseline_activities = sorted(activities) == sorted(baseline_activities)
+            
+            # Also check if KPIs are at default/baseline values (no modifications)
+            has_default_kpis = True
+            if is_baseline_activities and request.graph.kpis:
+                for activity, kpi_vals in request.graph.kpis.items():
+                    avg_time = kpi_vals.get('avg_time', 2.0)
+                    # If any activity has significantly different time from default, not baseline
+                    if abs(avg_time - 2.0) > 0.1:  # Allow small floating point differences
+                        has_default_kpis = False
+                        logger.debug(f"   Activity '{activity}' has modified time: {avg_time}h (not baseline)")
+                        break
+            
+            is_baseline_process = is_baseline_activities and has_default_kpis
             
             if is_baseline_process:
-                # For exact baseline process, use baseline KPIs directly
-                logger.info("   📊 Detected baseline process - using baseline KPIs")
+                # For exact baseline process with default KPIs, use baseline KPIs directly
+                logger.info("   📊 Detected baseline process with default KPIs - using baseline KPIs")
                 baseline_kpis_temp = model_manager.get_baseline_kpis()
                 predicted_kpis = baseline_kpis_temp.copy()
             else:
-                # For modified processes, apply complexity adjustments
-                # The ML model doesn't understand that more steps = worse performance
-                baseline_activity_count = 10  # Baseline O2C process has 10 activities
-                current_activity_count = len(activities)
-                activity_delta = current_activity_count - baseline_activity_count
+                # For modified processes, trust the ML model predictions
+                # The model was trained on 1500+ orders with varying process lengths
+                # It already learned that more steps = worse performance
+                logger.info("   🤖 Using ML model predictions (no manual adjustments)")
+                predicted_kpis = predicted_kpis_raw.copy()
                 
-                # Calculate complexity penalty/bonus (2% per additional/removed step)
-                complexity_factor = 1 - (activity_delta * 0.02)  # e.g., +1 step = 0.98x multiplier
-                
-                # Apply adjustments to KPIs
-                predicted_kpis = {
-                    # Percentage KPIs: multiply by complexity factor (more steps = lower %)
-                    'on_time_delivery': predicted_kpis_raw['on_time_delivery'] * complexity_factor,
-                    'order_accuracy': predicted_kpis_raw['order_accuracy'] * complexity_factor,
-                    'invoice_accuracy': predicted_kpis_raw['invoice_accuracy'] * complexity_factor,
-                    
-                    # Days/Cost KPIs: divide by complexity factor (more steps = higher days/cost)
-                    'days_sales_outstanding': predicted_kpis_raw['days_sales_outstanding'] / complexity_factor,
-                    'avg_cost_delivery': predicted_kpis_raw['avg_cost_delivery'] / complexity_factor,
-                }
-                
-                logger.debug(f"   Activity count: {current_activity_count} (baseline: {baseline_activity_count})")
-                logger.debug(f"   Complexity factor: {complexity_factor:.3f}")
-                logger.debug(f"   Adjusted predicted KPIs: {predicted_kpis}")
+                logger.debug(f"   Activity count: {len(activities)}")
+                logger.debug(f"   ML predicted KPIs: {predicted_kpis}")
             
             # 6. Get baseline KPIs
             baseline_kpis = model_manager.get_baseline_kpis()
@@ -497,6 +507,49 @@ async def simulate_process(request: SimulationRequest):
         logger.error(f"❌ Simulation error: {str(e)}")
         logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+@app.get("/api/orders")
+async def get_available_orders():
+    """
+    Get list of all available orders with metadata.
+    
+    Returns:
+        List of orders with case_id, event_count, item_count, and KPIs
+    """
+    try:
+        data_dir = backend_dir.parent / 'data'  # Data is in parent directory
+        
+        # Load order data
+        df_kpis = pd.read_csv(data_dir / 'order_kpis.csv')
+        df_order_items = pd.read_csv(data_dir / 'order_items.csv')
+        
+        # Get event counts per order
+        event_counts = {}
+        for case_id in df_kpis['order_id']:
+            events_df = data_loader.df_events[data_loader.df_events['order_id'] == case_id]
+            event_counts[case_id] = len(events_df)
+        
+        # Build order list
+        orders = []
+        for _, row in df_kpis.iterrows():
+            order_id = row['order_id']
+            items_count = len(df_order_items[df_order_items['order_id'] == order_id])
+            
+            orders.append({
+                'case_id': str(order_id),
+                'event_count': int(event_counts.get(order_id, 0)),
+                'item_count': int(items_count),
+                'on_time_delivery': float(row['on_time_delivery']),
+                'days_sales_outstanding': float(row['days_sales_outstanding']),
+                'order_accuracy': float(row['order_accuracy']),
+            })
+        
+        logger.info(f"📋 Retrieved {len(orders)} available orders")
+        return {'orders': orders, 'total': len(orders)}
+        
+    except Exception as e:
+        logger.error(f"❌ Error fetching orders: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error fetching orders: {str(e)}")
 
 @app.get("/api/sample")
 async def get_sample_case(case_id: Optional[str] = None, seed: int = 42):
@@ -591,3 +644,68 @@ async def health_check():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
+
+
+# ============================================================================
+# Session Management Endpoints
+# ============================================================================
+
+@app.post("/api/session/start")
+async def start_session():
+    """
+    Create a new session for entity consistency.
+    Returns a session ID that should be included in subsequent requests.
+    """
+    try:
+        session_id = session_manager.create_session()
+        return {
+            "session_id": session_id,
+            "message": "Session created successfully"
+        }
+    except Exception as e:
+        logger.error(f"Error starting session: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/session/reset")
+async def reset_session(request: dict):
+    """
+    Reset a session (generates new entities but keeps session ID).
+    """
+    try:
+        session_id = request.get("session_id")
+        if not session_id:
+            raise HTTPException(status_code=400, detail="session_id required")
+        
+        new_session_id = session_manager.reset_session(session_id)
+        return {
+            "session_id": new_session_id,
+            "message": "Session reset - new entities will be generated"
+        }
+    except Exception as e:
+        logger.error(f"Error resetting session: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/session/info/{session_id}")
+async def get_session_info(session_id: str):
+    """
+    Get information about a session.
+    """
+    try:
+        info = session_manager.get_session_info(session_id)
+        if not info:
+            raise HTTPException(status_code=404, detail="Session not found")
+        
+        return {
+            "session_id": session_id,
+            "created_at": info['created_at'],
+            "last_access": info['last_access'],
+            "request_count": info['request_count']
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting session info: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+

@@ -1,14 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Mic, Send } from 'lucide-react';
 import { Message } from '../App';
-import { ScrollArea } from './ui/scroll-area';
 
 interface PromptPanelProps {
   messages: Message[];
   onPromptSubmit: (prompt: string) => void;
+  isProcessEmpty?: boolean;  // NEW: Track if process is empty
 }
 
-export function PromptPanel({ messages, onPromptSubmit }: PromptPanelProps) {
+export function PromptPanel({ messages, onPromptSubmit, isProcessEmpty = false }: PromptPanelProps) {
   const [inputValue, setInputValue] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -38,11 +38,24 @@ export function PromptPanel({ messages, onPromptSubmit }: PromptPanelProps) {
     }
   };
 
-  const samplePrompts = [
+  // 🎯 Different prompts based on whether process is selected
+  const initialSelectionPrompts = [
+    "I want to see a standard order fulfillment process",
+    "Show me what happens when an order gets rejected",
+    "I need a process where customers get discounts",
+    "Show me how customer returns are handled",
+    "Display a simple quick order process",
+  ];
+
+  const modificationPrompts = [
     "Remove 'Generate Pick List'",
     "Add 'Apply Discount' step after 'Schedule Order Fulfillment'",
-    "Add 'Process Return Request' after 'Generate Pick List'",
+    "Change 'Generate Invoice' time to 30 minutes",
+    "Make 'Generate Pick List' and 'Pack Items' parallel",
   ];
+
+  // Choose prompts based on process state
+  const samplePrompts = isProcessEmpty ? initialSelectionPrompts : modificationPrompts;
 
   const handleSamplePromptClick = (prompt: string) => {
     setInputValue(prompt);
@@ -53,14 +66,39 @@ export function PromptPanel({ messages, onPromptSubmit }: PromptPanelProps) {
       {/* Header */}
       <div className="p-4 border-b border-gray-200">
         <h2 className="text-gray-900">Prompt to Design</h2>
-        <p className="text-sm text-gray-500 mt-1">Describe process changes in natural language</p>
+        <p className="text-sm text-gray-500 mt-1">
+          {isProcessEmpty 
+            ? 'Describe the process scenario you want to explore'
+            : 'Describe process changes in natural language'}
+        </p>
       </div>
 
       {/* Chat Area */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.length === 0 && !isProcessing && (
+        {/* Always show sample prompts when process is empty, even if there are messages */}
+        {isProcessEmpty && !isProcessing && (
           <div className="space-y-3">
-            <p className="text-sm text-gray-600 mb-4">Try these sample prompts:</p>
+            <p className="text-sm text-gray-600 mb-4">
+              ✨ Select a process to begin:
+            </p>
+            {samplePrompts.map((prompt, index) => (
+              <button
+                key={index}
+                onClick={() => handleSamplePromptClick(prompt)}
+                className="w-full text-left px-4 py-3 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg transition-colors group"
+              >
+                <p className="text-sm text-gray-700 group-hover:text-gray-900">{prompt}</p>
+              </button>
+            ))}
+          </div>
+        )}
+        
+        {/* Show sample prompts when no messages yet and process is loaded */}
+        {!isProcessEmpty && messages.length === 0 && !isProcessing && (
+          <div className="space-y-3">
+            <p className="text-sm text-gray-600 mb-4">
+              Try these sample prompts:
+            </p>
             {samplePrompts.map((prompt, index) => (
               <button
                 key={index}
