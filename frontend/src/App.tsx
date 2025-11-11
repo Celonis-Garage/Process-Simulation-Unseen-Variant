@@ -303,6 +303,7 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [simulationResults, setSimulationResults] = useState<any>(null);
   const [isSimulating, setIsSimulating] = useState(false);
+  const [sessionId, setSessionId] = useState<string | null>(null);
   
   // History for undo/redo functionality
   const [history, setHistory] = useState<Array<{
@@ -323,6 +324,12 @@ export default function App() {
         setError(null);
         console.log('🎯 Context-aware mode: Process explorer starts empty');
         console.log('💡 User will select initial variant via prompt');
+
+        // Create a new session for entity consistency
+        const { createSession } = await import('./services/api');
+        const newSessionId = await createSession();
+        setSessionId(newSessionId);
+        console.log('✅ Session created:', newSessionId);
 
         // REMOVED: Auto-load of most frequent variant
         // All the variant loading logic is now triggered by user's prompt via select_variant action
@@ -723,8 +730,20 @@ export default function App() {
   };
   
   // Reset functionality
-  const handleReset = () => {
-    if (window.confirm('Reset process to empty state? This will clear all activities and history.')) {
+  const handleReset = async () => {
+    if (window.confirm('Reset process to empty state? This will clear all activities, history, and generate new entities.')) {
+      // Reset session to get new entities
+      if (sessionId) {
+        try {
+          const { resetSession } = await import('./services/api');
+          const newSessionId = await resetSession(sessionId);
+          setSessionId(newSessionId);
+          console.log('✅ Session reset with new entities:', newSessionId);
+        } catch (error) {
+          console.error('Failed to reset session:', error);
+        }
+      }
+      
       setSteps([]);
       setEdges([]);
       setEventLogs([]);
@@ -734,7 +753,7 @@ export default function App() {
       setProcessChanges([]);
       setMessages([{
         type: 'ai',
-        text: '🔄 Process reset. Start fresh by describing a new process scenario.'
+        text: '🔄 Process reset. New entities generated. Start fresh by describing a new process scenario.'
       }]);
     }
   };
@@ -833,11 +852,12 @@ export default function App() {
       console.log('Calling backend ML simulation with:', {
         activities,
         edges: processEdges.length,
-        kpis: Object.keys(kpisMap).length
+        kpis: Object.keys(kpisMap).length,
+        sessionId
       });
       
-      // Call backend API for ML-based simulation
-      const result = await simulateProcess(eventLogs, processGraph);
+      // Call backend API for ML-based simulation with session ID
+      const result = await simulateProcess(eventLogs, processGraph, sessionId || undefined);
       
       console.log('🤖 ML-based simulation results:', result);
       setSimulationResults(result);
@@ -864,10 +884,11 @@ export default function App() {
         kpis: buildKPIsFromSteps(steps)
       };
       
-      // Call backend API to parse the prompt WITH current process context
+      // Call backend API to parse the prompt WITH current process context and session ID
       console.log('Parsing prompt with backend API:', prompt);
       console.log('Current process activities:', currentProcess.activities);
-      const response = await parsePrompt(prompt, currentProcess);
+      console.log('Session ID:', sessionId);
+      const response = await parsePrompt(prompt, currentProcess, sessionId || undefined);
       console.log('Parsed response:', response);
       
       // Handle different action types
@@ -876,6 +897,7 @@ export default function App() {
       if (response.action === 'select_variant') {
         console.log('✨ Variant selection:', response.variant_id);
         const activities = response.activities || [];
+        const kpis = response.kpis || {};  // Get real KPIs from backend
         
         if (activities.length === 0) {
           setMessages(prev => [...prev, {
@@ -885,16 +907,25 @@ export default function App() {
           return;
         }
         
-        // Build steps from activities
+        // Build steps from activities with REAL KPIs from data
         const newSteps: ProcessStep[] = [
           { id: 'start', name: 'Start', avgTime: '-', avgCost: '-' },
-          ...activities.map((actName: string, i: number) => ({
-            id: `step-${i + 1}`,
-            name: actName,
-            avgTime: '1m',  // Default values
-            avgCost: '$0.5',
-            isNew: false
-          })),
+          ...activities.map((actName: string, i: number) => {
+            // Get real KPIs for this activity from backend data
+            const activityKpis = kpis[actName];
+            const avgTime = activityKpis?.avgTime || '2h';  // Fallback to 2h if missing
+            const avgCost = activityKpis?.avgCost || '$50.0';  // Fallback to $50 if missing
+            
+            console.log(`Activity ${actName}: ${avgTime}, ${avgCost}`);
+            
+            return {
+              id: `step-${i + 1}`,
+              name: actName,
+              avgTime: avgTime,  // Use real data from backend
+              avgCost: avgCost,  // Use real data from backend
+              isNew: false
+            };
+          }),
           { id: 'end', name: 'End', avgTime: '-', avgCost: '-' }
         ];
         

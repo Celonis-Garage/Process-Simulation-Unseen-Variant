@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 def generate_dynamic_supplier_positions(supplier_ids: List[str]) -> Dict[str, Dict[str, Any]]:
     """
     Dynamically generate positions for suppliers based on how many there are.
-    Distributes them evenly along top (z=8) and bottom (z=-8) rows.
+    Distributes them evenly along top (z=10) and bottom (z=-10) rows.
     
     Args:
         supplier_ids: List of supplier IDs to position
@@ -43,10 +43,10 @@ def generate_dynamic_supplier_positions(supplier_ids: List[str]) -> Dict[str, Di
     top_count = (count + 1) // 2
     bottom_count = count - top_count
     
-    # Calculate spacing to fit all suppliers
-    x_range = 32  # From -16 to 16
-    x_spacing = x_range / max(top_count, bottom_count) if count > 0 else 4
-    x_start = -16
+    # Calculate spacing to fit all suppliers (doubled from 32 to 64 for wider layout)
+    x_range = 64  # From -32 to 32
+    x_spacing = x_range / max(top_count, bottom_count) if count > 0 else 8
+    x_start = -32
     
     # Load supplier data for labels and countries
     data_dir = Path(__file__).parent.parent / 'data'
@@ -61,7 +61,7 @@ def generate_dynamic_supplier_positions(supplier_ids: List[str]) -> Dict[str, Di
         positions[sid] = {
             'x': x_start + i * x_spacing,
             'y': 0,
-            'z': 8,
+            'z': 10,  # Moved from 8 to 10 for wider scene
             'label': label[:15],  # Truncate long names
             'country': country
         }
@@ -75,7 +75,7 @@ def generate_dynamic_supplier_positions(supplier_ids: List[str]) -> Dict[str, Di
         positions[sid] = {
             'x': x_start + i * x_spacing,
             'y': 0,
-            'z': -8,
+            'z': -10,  # Moved from -8 to -10 for wider scene
             'label': label[:15],
             'country': country
         }
@@ -97,9 +97,9 @@ def generate_dynamic_activity_positions(activities: List[str], most_frequent_var
     """
     positions = {}
     
-    # Position main flow horizontally
-    x_start = -18
-    x_spacing = 4
+    # Position main flow horizontally (doubled spacing from 4 to 8)
+    x_start = -36
+    x_spacing = 8
     
     # Shorten common labels
     label_map = {
@@ -142,33 +142,33 @@ def generate_dynamic_activity_positions(activities: List[str], most_frequent_var
             # Between Approve and Schedule
             if 'Approve Order' in positions and 'Schedule Order Fulfillment' in positions:
                 x_between = (positions['Approve Order']['x'] + positions['Schedule Order Fulfillment']['x']) / 2
-                z_offset = -4  # Below main line
+                z_offset = -6  # Below main line (increased from -4 to -6 for wider layout)
             else:
                 # Fallback if those events don't exist
                 x_between = x_start + 2 * x_spacing
-                z_offset = -4
+                z_offset = -6
                 
         elif dev_activity == 'Apply Discount':
             # Between Schedule and Pick List
             if 'Schedule Order Fulfillment' in positions and 'Generate Pick List' in positions:
                 x_between = (positions['Schedule Order Fulfillment']['x'] + positions['Generate Pick List']['x']) / 2
-                z_offset = 4  # Above main line
+                z_offset = 6  # Above main line (increased from 4 to 6 for wider layout)
             else:
                 x_between = x_start + 4 * x_spacing
-                z_offset = 4
+                z_offset = 6
                 
         elif dev_activity == 'Process Return Request':
             # Between Ship and Invoice
             if 'Ship Order' in positions and 'Generate Invoice' in positions:
                 x_between = (positions['Ship Order']['x'] + positions['Generate Invoice']['x']) / 2
-                z_offset = 4  # Above main line
+                z_offset = 6  # Above main line (increased from 4 to 6 for wider layout)
             else:
                 x_between = x_start + 8 * x_spacing
-                z_offset = 4
+                z_offset = 6
         else:
             # Unknown deviation - place at end
             x_between = x_start + len(main_flow_activities) * x_spacing
-            z_offset = 4
+            z_offset = 6
         
         positions[dev_activity] = {
             'x': x_between,
@@ -183,50 +183,52 @@ def generate_dynamic_activity_positions(activities: List[str], most_frequent_var
 # Location coordinates for the warehouse layout (in 3D space)
 # Most frequent variant (10 activities) in a straight horizontal line at z=0
 # Deviations positioned BETWEEN main events, creating rectangular box flow
+# Spacing increased to 8 units between stations (was 4) for better visibility with 3x larger stations
 LOCATIONS = {
-    # Main flow - horizontal line (most frequent variant)
-    'Receive Customer Order': {'x': -18, 'y': 0, 'z': 0, 'label': 'Receive Order', 'type': 'main'},
-    'Validate Customer Order': {'x': -14, 'y': 0, 'z': 0, 'label': 'Validate', 'type': 'main'},
-    'Perform Credit Check': {'x': -10, 'y': 0, 'z': 0, 'label': 'Credit Check', 'type': 'main'},
-    'Approve Order': {'x': -6, 'y': 0, 'z': 0, 'label': 'Approve', 'type': 'main'},
-    'Schedule Order Fulfillment': {'x': -2, 'y': 0, 'z': 0, 'label': 'Schedule', 'type': 'main'},
-    'Generate Pick List': {'x': 2, 'y': 0, 'z': 0, 'label': 'Pick List', 'type': 'main'},
-    'Pack Items': {'x': 6, 'y': 0, 'z': 0, 'label': 'Pack', 'type': 'main'},
-    'Generate Shipping Label': {'x': 10, 'y': 0, 'z': 0, 'label': 'Ship Label', 'type': 'main'},
-    'Ship Order': {'x': 14, 'y': 0, 'z': 0, 'label': 'Ship', 'type': 'main'},
-    'Generate Invoice': {'x': 18, 'y': 0, 'z': 0, 'label': 'Invoice', 'type': 'main'},
+    # Main flow - horizontal line (most frequent variant) - 8 unit spacing
+    'Receive Customer Order': {'x': -36, 'y': 0, 'z': 0, 'label': 'Receive Order', 'type': 'main'},
+    'Validate Customer Order': {'x': -28, 'y': 0, 'z': 0, 'label': 'Validate', 'type': 'main'},
+    'Perform Credit Check': {'x': -20, 'y': 0, 'z': 0, 'label': 'Credit Check', 'type': 'main'},
+    'Approve Order': {'x': -12, 'y': 0, 'z': 0, 'label': 'Approve', 'type': 'main'},
+    'Schedule Order Fulfillment': {'x': -4, 'y': 0, 'z': 0, 'label': 'Schedule', 'type': 'main'},
+    'Generate Pick List': {'x': 4, 'y': 0, 'z': 0, 'label': 'Pick List', 'type': 'main'},
+    'Pack Items': {'x': 12, 'y': 0, 'z': 0, 'label': 'Pack', 'type': 'main'},
+    'Generate Shipping Label': {'x': 20, 'y': 0, 'z': 0, 'label': 'Ship Label', 'type': 'main'},
+    'Ship Order': {'x': 28, 'y': 0, 'z': 0, 'label': 'Ship', 'type': 'main'},
+    'Generate Invoice': {'x': 36, 'y': 0, 'z': 0, 'label': 'Invoice', 'type': 'main'},
     
     # Deviations - positioned BETWEEN main events for rectangular box flow
-    # Reject Order: Between Approve and Schedule (x=-4, between -6 and -2)
-    'Reject Order': {'x': -4, 'y': 0, 'z': -4, 'label': 'Reject', 'type': 'deviation'},
+    # Reject Order: Between Approve and Schedule (x=-8, between -12 and -4)
+    'Reject Order': {'x': -8, 'y': 0, 'z': -6, 'label': 'Reject', 'type': 'deviation'},
     
-    # Apply Discount: Between Schedule and Pick List (x=0, between -2 and 2)
-    'Apply Discount': {'x': 0, 'y': 0, 'z': 4, 'label': 'Discount', 'type': 'deviation'},
+    # Apply Discount: Between Schedule and Pick List (x=0, between -4 and 4)
+    'Apply Discount': {'x': 0, 'y': 0, 'z': 6, 'label': 'Discount', 'type': 'deviation'},
     
-    # Process Return Request: Between Ship and Invoice (x=16, between 14 and 18)
-    'Process Return Request': {'x': 16, 'y': 0, 'z': 4, 'label': 'Returns', 'type': 'deviation'},
+    # Process Return Request: Between Ship and Invoice (x=32, between 28 and 36)
+    'Process Return Request': {'x': 32, 'y': 0, 'z': 6, 'label': 'Returns', 'type': 'deviation'},
 }
 
 # Supplier location coordinates (arranged along top and bottom edges)
+# Spacing adjusted to match wider layout (doubled from 4 to 8 units)
 SUPPLIER_LOCATIONS = {
-    # Top row (z = 8)
-    'S001': {'x': -16, 'y': 0, 'z': 8, 'label': 'Global Office', 'country': 'USA'},
-    'S002': {'x': -12, 'y': 0, 'z': 8, 'label': 'TechSource', 'country': 'USA'},
-    'S003': {'x': -8, 'y': 0, 'z': 8, 'label': 'Premier Furn', 'country': 'USA'},
-    'S004': {'x': -4, 'y': 0, 'z': 8, 'label': 'Pacific', 'country': 'China'},
-    'S005': {'x': 0, 'y': 0, 'z': 8, 'label': 'EuroTech', 'country': 'Germany'},
-    'S006': {'x': 4, 'y': 0, 'z': 8, 'label': 'Natl Print', 'country': 'USA'},
-    'S007': {'x': 8, 'y': 0, 'z': 8, 'label': 'Asian Trade', 'country': 'Singapore'},
-    'S008': {'x': 12, 'y': 0, 'z': 8, 'label': 'Metro Storage', 'country': 'USA'},
-    # Bottom row (z = -8)
-    'S009': {'x': -16, 'y': 0, 'z': -8, 'label': 'Nordic Furn', 'country': 'Sweden'},
-    'S010': {'x': -12, 'y': 0, 'z': -8, 'label': 'Quantum', 'country': 'USA'},
-    'S011': {'x': -8, 'y': 0, 'z': -8, 'label': 'MicroParts', 'country': 'Taiwan'},
-    'S012': {'x': -4, 'y': 0, 'z': -8, 'label': 'Southern', 'country': 'USA'},
-    'S013': {'x': 0, 'y': 0, 'z': -8, 'label': 'Global Net', 'country': 'UAE'},
-    'S014': {'x': 4, 'y': 0, 'z': -8, 'label': 'Eco-Friendly', 'country': 'Canada'},
-    'S015': {'x': 8, 'y': 0, 'z': -8, 'label': 'Premium Elec', 'country': 'Japan'},
-    'S016': {'x': 12, 'y': 0, 'z': -8, 'label': 'FastShip', 'country': 'Mexico'},
+    # Top row (z = 10, moved further out for wider scene)
+    'S001': {'x': -32, 'y': 0, 'z': 10, 'label': 'Global Office', 'country': 'USA'},
+    'S002': {'x': -24, 'y': 0, 'z': 10, 'label': 'TechSource', 'country': 'USA'},
+    'S003': {'x': -16, 'y': 0, 'z': 10, 'label': 'Premier Furn', 'country': 'USA'},
+    'S004': {'x': -8, 'y': 0, 'z': 10, 'label': 'Pacific', 'country': 'China'},
+    'S005': {'x': 0, 'y': 0, 'z': 10, 'label': 'EuroTech', 'country': 'Germany'},
+    'S006': {'x': 8, 'y': 0, 'z': 10, 'label': 'Natl Print', 'country': 'USA'},
+    'S007': {'x': 16, 'y': 0, 'z': 10, 'label': 'Asian Trade', 'country': 'Singapore'},
+    'S008': {'x': 24, 'y': 0, 'z': 10, 'label': 'Metro Storage', 'country': 'USA'},
+    # Bottom row (z = -10, moved further out for wider scene)
+    'S009': {'x': -32, 'y': 0, 'z': -10, 'label': 'Nordic Furn', 'country': 'Sweden'},
+    'S010': {'x': -24, 'y': 0, 'z': -10, 'label': 'Quantum', 'country': 'USA'},
+    'S011': {'x': -16, 'y': 0, 'z': -10, 'label': 'MicroParts', 'country': 'Taiwan'},
+    'S012': {'x': -8, 'y': 0, 'z': -10, 'label': 'Southern', 'country': 'USA'},
+    'S013': {'x': 0, 'y': 0, 'z': -10, 'label': 'Global Net', 'country': 'UAE'},
+    'S014': {'x': 8, 'y': 0, 'z': -10, 'label': 'Eco-Friendly', 'country': 'Canada'},
+    'S015': {'x': 16, 'y': 0, 'z': -10, 'label': 'Premium Elec', 'country': 'Japan'},
+    'S016': {'x': 24, 'y': 0, 'z': -10, 'label': 'FastShip', 'country': 'Mexico'},
 }
 
 # Category to color mapping for items

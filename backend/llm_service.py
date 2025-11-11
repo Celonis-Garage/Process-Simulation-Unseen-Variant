@@ -17,16 +17,18 @@ logger = logging.getLogger(__name__)
 class GroqLLMService:
     """Service for parsing process modification prompts using Groq LLM."""
     
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: Optional[str] = None, data_loader=None):
         """
         Initialize Groq LLM service.
         
         Args:
             api_key: Groq API key. If not provided, reads from GROQ_API_KEY env var.
+            data_loader: RealDataLoader instance for fetching KPIs from data.
         """
         self.api_key = api_key or os.getenv("GROQ_API_KEY")
         if not self.api_key:
             raise ValueError("GROQ_API_KEY not found. Please provide API key or set environment variable.")
+        self.data_loader = data_loader
         
         self.client = Groq(api_key=self.api_key)
         # Use current Groq models: llama-3.3-70b-versatile (best), llama-3.1-8b-instant (fast), mixtral-8x7b-32768
@@ -266,10 +268,45 @@ class GroqLLMService:
                 
                 if selected_variant:
                     logger.info(f"Found variant {selected_id} with {len(selected_variant['event_sequence'])} activities")
+                    
+                    # Fetch real KPIs from data for this variant
+                    activities = selected_variant['event_sequence']
+                    kpis_data = {}
+                    
+                    if self.data_loader:
+                        try:
+                            # Get real KPIs from data
+                            raw_kpis = self.data_loader.get_event_kpis_for_activities(activities)
+                            logger.info(f"Fetched KPIs from data for {len(activities)} activities")
+                            
+                            # Format KPIs for frontend
+                            for activity, vals in raw_kpis.items():
+                                avg_time = vals.get('avg_time', 1.0)
+                                cost = vals.get('cost', 50.0)
+                                
+                                # Format time string
+                                if avg_time < 1:
+                                    time_str = f"{round(avg_time * 60)}m"
+                                elif avg_time < 24:
+                                    time_str = f"{round(avg_time, 1)}h"
+                                else:
+                                    time_str = f"{round(avg_time / 24, 1)}d"
+                                
+                                kpis_data[activity] = {
+                                    'avgTime': time_str,
+                                    'avgCost': f"${cost:.2f}"
+                                }
+                            
+                            logger.info(f"Formatted KPIs: {json.dumps(kpis_data, indent=2)}")
+                        except Exception as e:
+                            logger.error(f"Failed to fetch KPIs from data: {e}")
+                            # Will use empty dict, frontend will use defaults
+                    
                     response_data = {
                         'action': 'select_variant',
                         'variant_id': selected_id,
-                        'activities': selected_variant['event_sequence'],
+                        'activities': activities,
+                        'kpis': kpis_data,  # Include real KPIs from data
                         'explanation': result.get('explanation', ''),
                         'confidence': result.get('confidence', 0.8),
                         'suggested_prompts': result.get('suggested_prompts', [
@@ -278,7 +315,7 @@ class GroqLLMService:
                             "Remove the credit check step"
                         ])
                     }
-                    logger.info(f"Returning variant selection: {json.dumps(response_data, indent=2)}")
+                    logger.info(f"Returning variant selection with KPIs: {json.dumps(response_data, indent=2)}")
                     return response_data
                 else:
                     logger.warning(f"Variant {selected_id} not found in variant_contexts")

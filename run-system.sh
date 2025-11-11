@@ -48,7 +48,8 @@ $VENV_PIP install -r requirements.txt
 
 # Set GROQ API KEY for LLM service
 echo "🤖 Setting up LLM service with Groq API..."
-export GROQ_API_KEY="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"
+export GROQ_API_KEY="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"
+#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 backup API key
 
 # Check if ML model exists, train if needed
 echo ""

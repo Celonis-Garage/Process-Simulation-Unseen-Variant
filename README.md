@@ -197,10 +197,12 @@ This advanced visualization transforms abstract process data into an immersive 3
 - **Event Navigation**: Click event cards to jump directly to specific process steps
 
 **Visual Intelligence:**
-- **Category-Based Colors**: Items colored by category (Blue=Electronics, Green=Office Supplies, Amber=Furniture, Purple=Printing, Pink=Storage)
-- **Size Indication**: Item sphere size varies based on quantity (logarithmic scaling)
-- **Transit Timing**: International items depart earlier than domestic items (realistic transit times)
-- **Active Highlighting**: Current location highlighted in blue, completed locations in green
+- **Category-Based Colors**: Items colored by category (Blue=Electronics, Green=Office Supplies, Amber=Furniture, Purple=Printing, Pink=Storage, Cyan=Accessories)
+- **Contextual 3D Models**: Each station type has a unique 3D representation that matches its function (warehouse has shelves, packing has boxes, shipping looks like a truck)
+- **Transit Timing**: Items depart sequentially with 5-second stagger for clear visibility, 40-second transit time for all suppliers
+- **Active Highlighting**: Current location highlighted with blue glow, emissive materials enhance visual feedback
+- **Progressive Paths**: Order and item paths draw progressively as they travel, showing only the traveled portion
+- **Factory Visualization**: Suppliers rendered as industrial buildings with chimneys and loading docks
 
 **Information Display:**
 - **Real-time KPIs**: Display of 5 performance metrics in sidebar
@@ -292,22 +294,46 @@ Open http://localhost:5175 in your browser after running `./run-system.sh`
 ### Scene Components
 
 **Spatial Layout:**
-- **Main Process Flow**: Linear path from Sales Desk (left) to Billing (right)
-- **Supplier Zone**: Arranged in arc around top/back of scene
-- **Warehouse Area**: Center of convergence (coordinates: x=2, z=-2)
-- **Ground Plane**: Light gray with subtle grid (50×50 units)
+- **Main Process Flow**: Linear path from Sales Desk (left) to Billing (right) with 8-unit spacing between stations
+- **Supplier Zone**: Arranged in arc around top and bottom edges with 8-unit spacing
+- **Warehouse Area**: Center of convergence (coordinates: x=4, z=0)
+- **Ground Plane**: Light gray with subtle grid (120×50 units)
+- **Camera View**: Positioned at (0, 35, 30) with 70-degree field of view for optimal scene coverage
 
 **Object Types:**
-1. **Order Sphere**: 0.3 unit radius, orange (#ea580c), floats with sine wave
-2. **Item Spheres**: 0.15-0.25 radius (varies by quantity), category colors, gentle floating
-3. **Process Locations**: 0.5×0.3×0.5 boxes, blue when active/gray otherwise
-4. **Supplier Locations**: 0.4×0.2×0.4 boxes, green (#10b981), with labels
-5. **Path Lines**: Dashed lines showing trajectories (orange for order, category color for items)
+1. **Order Sphere**: 0.4 unit radius, orange (#ea580c), floats with sine wave
+2. **Item Spheres**: 0.15 unit radius, category colors, gentle floating, staggered departure with 5-second intervals
+3. **Process Locations**: Context-aware 3D shapes representing actual station functions
+   - Reception: Desk with counter (3.0×0.9×1.8 units)
+   - Warehouse: Large building with shelving units (3.6×2.4×2.4 units)
+   - Packing: Table with stacked boxes (3.0×0.6×1.8 units)
+   - Shipping: Truck/loading dock shape (2.4×1.5×1.8 units)
+   - Office/Validation: Desk with monitor (2.4×0.6×1.5 units)
+   - Accounting: Computer workstation with tower (2.1×0.6×1.5 units)
+   - Rejection/Returns: X-shaped cross (2.4×0.6×0.6 units)
+   - Planning: Desk with documents (2.7×0.6×1.8 units)
+   - Discount: Plus/star shape (1.8×0.9×1.8 units)
+4. **Supplier Locations**: Factory/industrial buildings with chimney, side wing, and loading dock (1.8×1.2×1.5 main building)
+5. **Path Lines**: Progressive solid lines showing traveled portion (orange for order, category color for items, line width 4-5)
+
+**Color-Coded Stations:**
+- Reception: Indigo (#6366f1)
+- Validation: Purple (#8b5cf6)
+- Office: Sky Blue (#0ea5e9)
+- Planning: Cyan (#06b6d4)
+- Warehouse: Green (#10b981)
+- Packing: Amber (#f59e0b)
+- Shipping: Red (#ef4444)
+- Accounting: Pink (#ec4899)
+- Rejection: Dark Red (#dc2626)
+- Returns: Orange (#f97316)
+- Discount: Lime (#84cc16)
+- Suppliers: Green (#10b981)
 
 **Lighting Setup:**
-- Ambient light: 0.8 intensity (general illumination)
-- Directional light: 1.2 intensity from (10,10,5) with shadows
-- Point light: 0.6 intensity from (-10,10,-10) with blue tint (#60a5fa)
+- Ambient light: 0.9 intensity (general illumination)
+- Directional light: 1.3 intensity from (10,15,5) with shadows
+- Point light: 0.5 intensity from (-10,10,-10) with blue tint (#60a5fa)
 - Optimized for light theme background (#f3f4f6)
 
 ### Use Cases
@@ -412,15 +438,16 @@ For each simulation, you'll see:
 ### Architecture
 
 The system uses a multi-output deep neural network with:
-- Input: 409-dimensional feature vector
-  - Transition frequency matrix (13x13)
-  - Transition duration matrix (13x13)
-  - User involvement vector (7)
-  - Item quantities (24) and amounts (24)
-  - Supplier involvement vector (16)
-- Hidden layers: 256 -> 128 -> 64 neurons with batch normalization
+- Input: 417-dimensional feature vector
+  - Transition frequency matrix (13x13 = 169 features)
+  - Transition duration matrix (13x13 = 169 features)
+  - User involvement vector (7 features)
+  - Item quantities (24 features) and amounts (24 features)
+  - Supplier involvement vector (16 features)
+  - Outcome features (8 features: rejection, return, cancellation, completion, completeness ratio, rejection position, revenue generation, discount)
+- Hidden layers: 256 -> 128 -> 64 neurons with batch normalization and dropout
 - Outputs: 5 KPIs (normalized to 0-1 range)
-- Training data: 1500+ historical O2C orders
+- Training data: 1500+ historical O2C orders with realistic KPI labels based on process outcomes
 
 ### Model Training
 
@@ -505,8 +532,10 @@ Get your Groq API key from: https://console.groq.com
 Key parameters in `backend/ml_model.py`:
 - Learning rate: 0.001
 - Batch size: 32
-- Epochs: 300 (with early stopping)
-- Architecture: [409] -> 256 -> 128 -> 64 -> [5 outputs]
+- Epochs: 300 (with early stopping, patience 20)
+- Architecture: [417] -> 256 -> 128 -> 64 -> [5 outputs]
+- Dropout rate: 0.3 (applied after each hidden layer)
+- Normalization: Separate scalers for each feature group (MinMaxScaler) and per-KPI target normalization
 
 ### Data Configuration
 
@@ -528,10 +557,10 @@ To add activities to the dataset:
 ### Extending KPI Support
 
 To add new KPIs:
-1. Update `backend/EDA_O2C_Orders.ipynb` - add KPI calculation
+1. Update `backend/regenerate_kpis.py` - add KPI calculation in `generate_kpis_for_order()`
 2. Modify `backend/ml_model.py` - add output layer
 3. Update `frontend/src/types/index.ts` - add interface fields
-4. Retrain model with new target
+4. Retrain model with new target using `python train_model.py`
 
 ### Code Quality
 
@@ -620,9 +649,9 @@ Unexpected 0% change indicates:
 ## Contributing
 
 This is a research project developed for process optimization analysis. For questions or collaboration:
-1. Review test reports in project root
-2. Check API documentation at /docs endpoint
-3. Examine training notebook: `backend/EDA_O2C_Orders.ipynb`
+1. Review test reports in project root (REVISED_COMPREHENSIVE_TEST_REPORT.md, REVISED_TEST_SCENARIOS.md)
+2. Check API documentation at http://localhost:8000/docs endpoint
+3. Examine training script: `backend/train_model.py` and KPI generation: `backend/regenerate_kpis.py`
 
 ## License
 
@@ -639,6 +668,6 @@ Academic/Research use. Not for commercial deployment without proper testing and 
 
 ---
 
-Last Updated: November 4, 2025
-Version: 1.1.0 (ML + 3D Visualization)
-Status: Production-Ready - Structure Changes Validated, 3D Supply Chain Visualization Complete, KPI Modifications Pending
+Last Updated: November 11, 2025
+Version: 1.2.0 (Enhanced ML with Outcome Features + Context-Aware 3D Visualization)
+Status: Production-Ready - ML business logic learned from data, contextual 3D station models with increased spacing, session-based entity persistence, structure changes validated

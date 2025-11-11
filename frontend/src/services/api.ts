@@ -47,16 +47,50 @@ api.interceptors.response.use(
 );
 
 /**
+ * Create a new session
+ * POST /api/session/start
+ * Returns: { session_id: string }
+ */
+export const createSession = async (): Promise<string> => {
+  try {
+    const response = await api.post('/api/session/start');
+    console.log('Session created:', response.data.session_id);
+    return response.data.session_id;
+  } catch (error: any) {
+    console.error('Error creating session:', error);
+    throw new Error(error.response?.data?.detail || 'Failed to create session');
+  }
+};
+
+/**
+ * Reset a session
+ * POST /api/session/reset
+ * Body: { session_id: string }
+ * Returns: { session_id: string }
+ */
+export const resetSession = async (sessionId: string): Promise<string> => {
+  try {
+    const response = await api.post('/api/session/reset', { session_id: sessionId });
+    console.log('Session reset:', response.data.session_id);
+    return response.data.session_id;
+  } catch (error: any) {
+    console.error('Error resetting session:', error);
+    throw new Error(error.response?.data?.detail || 'Failed to reset session');
+  }
+};
+
+/**
  * Parse natural language prompt into structured process modification
  * POST /api/parse-prompt
- * Body: { prompt: string, current_process?: { activities: string[], edges: any[], kpis: any } }
+ * Body: { prompt: string, current_process?: { activities: string[], edges: any[], kpis: any }, session_id?: string }
  * Returns: structured process modification JSON
  */
-export const parsePrompt = async (prompt: string, currentProcess?: { activities: string[], edges?: any[], kpis?: any }): Promise<PromptResponse> => {
+export const parsePrompt = async (prompt: string, currentProcess?: { activities: string[], edges?: any[], kpis?: any }, sessionId?: string): Promise<PromptResponse> => {
   try {
     const response = await api.post('/api/parse-prompt', { 
       prompt,
-      current_process: currentProcess 
+      current_process: currentProcess,
+      session_id: sessionId
     });
     return response.data;
   } catch (error: any) {
@@ -68,12 +102,12 @@ export const parsePrompt = async (prompt: string, currentProcess?: { activities:
 /**
  * Generate event log from current process graph
  * POST /api/generate-log
- * Body: { graph: ProcessGraph }
+ * Body: { graph: ProcessGraph, session_id?: string }
  * Returns: event log JSON with metadata
  */
-export const generateEventLog = async (graph: ProcessGraph): Promise<EventLogResponse> => {
+export const generateEventLog = async (graph: ProcessGraph, sessionId?: string): Promise<EventLogResponse> => {
   try {
-    const response = await api.post('/api/generate-log', { graph });
+    const response = await api.post('/api/generate-log', { graph, session_id: sessionId });
     return response.data;
   } catch (error: any) {
     console.error('Error generating event log:', error);
@@ -84,17 +118,19 @@ export const generateEventLog = async (graph: ProcessGraph): Promise<EventLogRes
 /**
  * Run process simulation to predict KPI changes
  * POST /api/simulate
- * Body: { event_log: any[], graph: ProcessGraph }
+ * Body: { event_log: any[], graph: ProcessGraph, session_id?: string }
  * Returns: KPI predictions and business impact analysis
  */
 export const simulateProcess = async (
   eventLog: any[], 
-  graph: ProcessGraph
+  graph: ProcessGraph,
+  sessionId?: string
 ): Promise<SimulationResult> => {
   try {
     const response = await api.post('/api/simulate', { 
       event_log: eventLog, 
-      graph 
+      graph,
+      session_id: sessionId
     });
     return response.data;
   } catch (error: any) {

@@ -45,6 +45,7 @@ app.add_middleware(
 class PromptRequest(BaseModel):
     prompt: str
     current_process: Optional[Dict[str, Any]] = None  # Include current process state
+    session_id: Optional[str] = None  # Session ID for entity consistency
 
 class ProcessGraph(BaseModel):
     activities: List[str]
@@ -53,10 +54,12 @@ class ProcessGraph(BaseModel):
 
 class EventLogRequest(BaseModel):
     graph: ProcessGraph
+    session_id: Optional[str] = None  # Session ID for entity consistency
 
 class SimulationRequest(BaseModel):
     event_log: List[Dict[str, Any]]
     graph: ProcessGraph
+    session_id: Optional[str] = None  # Session ID for entity consistency
 
 class PromptResponse(BaseModel):
     action: str
@@ -72,6 +75,7 @@ class PromptResponse(BaseModel):
     # NEW: Fields for select_variant action (context-aware variant selection)
     variant_id: Optional[str] = None  # Selected variant ID
     activities: Optional[List[str]] = None  # List of activity names in the variant
+    kpis: Optional[Dict[str, Dict[str, str]]] = None  # KPIs for each activity (avgTime, avgCost)
     suggested_prompts: Optional[List[str]] = None  # Suggested next prompts after variant selection
 
 class SimulationResponse(BaseModel):
@@ -106,14 +110,8 @@ model_manager: Optional[ModelManager] = None
 scenario_generator: Optional[ScenarioGenerator] = None
 use_ml_predictions = False  # Flag to indicate if ML model is available
 
-# Initialize LLM service
-try:
-    llm_service = GroqLLMService()
-    logger.info("✅ LLM Service initialized successfully")
-except Exception as e:
-    logger.warning(f"⚠️ LLM Service initialization failed: {e}")
-    logger.warning("⚠️ Falling back to regex-based parser")
-    llm_service = None
+# Initialize LLM service (will be properly initialized after data_loader in startup)
+llm_service = None
 
 # Initialize Session Manager for entity consistency
 session_manager = get_session_manager()
@@ -123,7 +121,7 @@ logger.info("✅ Session Manager initialized")
 @app.on_event("startup")
 async def startup_event():
     """Initialize ML model and scenario generator at startup"""
-    global model_manager, scenario_generator, use_ml_predictions
+    global model_manager, scenario_generator, use_ml_predictions, llm_service
     
     logger.info("="*80)
     logger.info("🚀 BACKEND STARTUP - Initializing ML Model")
@@ -196,6 +194,15 @@ async def startup_event():
         logger.error(traceback.format_exc())
         logger.warning("⚠️ Falling back to rule-based KPI calculation")
         use_ml_predictions = False
+    
+    # Initialize LLM service with data_loader
+    try:
+        llm_service = GroqLLMService(data_loader=data_loader)
+        logger.info("✅ LLM Service initialized with data_loader")
+    except Exception as e:
+        logger.warning(f"⚠️ LLM Service initialization failed: {e}")
+        logger.warning("⚠️ Falling back to regex-based parser")
+        llm_service = None
     
     logger.info("="*80)
     if use_ml_predictions:
@@ -327,6 +334,16 @@ async def get_process_flow_metrics():
 @app.post("/api/parse-prompt", response_model=PromptResponse)
 async def parse_prompt(request: PromptRequest):
     try:
+        # Extract entity constraints from prompt (first time only)
+        is_initial_request = not request.current_process or len(request.current_process.get('activities', [])) == 0
+        
+        if is_initial_request and request.session_id:
+            # Extract entity information from user prompt
+            entity_constraints = session_manager.extract_entity_info_from_prompt(request.prompt)
+            if entity_constraints:
+                session_manager.store_entity_constraints(request.session_id, entity_constraints)
+                logger.info(f"📝 Extracted and stored entity constraints: {entity_constraints}")
+        
         # Use LLM service if available, otherwise fall back to regex
         if llm_service:
             logger.info(f"🤖 Using LLM service for prompt: {request.prompt}")
@@ -374,14 +391,42 @@ async def simulate_process(request: SimulationRequest):
         if use_ml_predictions and model_manager and scenario_generator:
             logger.info("🤖 Using ML-based KPI predictions")
             
-            # 1. Generate scenario entities (users, items, suppliers)
             activities = request.graph.activities
-            user_ids, items_data, supplier_ids, order_value = scenario_generator.generate_scenario_entities(
-                activities,
-                num_users=None,  # Random 1-4
-                num_items=None   # Random 1-10
-            )
-            logger.debug(f"   Generated: {len(user_ids)} users, {len(items_data)} items, {len(supplier_ids)} suppliers")
+            
+            # 1. Check for existing entities in session
+            stored_entities = None
+            if request.session_id:
+                stored_entities = session_manager.get_entities(request.session_id)
+            
+            if stored_entities:
+                # Use stored entities from session
+                user_ids = stored_entities['users']
+                items_data = stored_entities['items']
+                supplier_ids = stored_entities['suppliers']
+                logger.info(f"✅ Using stored session entities: {len(user_ids)} users, {len(items_data)} items, {len(supplier_ids)} suppliers")
+            else:
+                # Generate new entities with constraints if available
+                entity_constraints = None
+                session_seed = None
+                
+                if request.session_id:
+                    entity_constraints = session_manager.get_entity_constraints(request.session_id)
+                    session_seed = session_manager.get_session_seed(request.session_id)
+                    logger.info(f"🎲 Using session seed: {session_seed}, constraints: {entity_constraints}")
+                
+                user_ids, items_data, supplier_ids, order_value = scenario_generator.generate_scenario_entities(
+                    activities,
+                    num_users=None,
+                    num_items=None,
+                    session_seed=session_seed,
+                    entity_constraints=entity_constraints
+                )
+                logger.debug(f"   Generated: {len(user_ids)} users, {len(items_data)} items, {len(supplier_ids)} suppliers")
+                
+                # Store entities in session for future use
+                if request.session_id:
+                    session_manager.store_entities(request.session_id, user_ids, items_data, supplier_ids)
+                    logger.info("💾 Stored entities in session for consistency")
             
             # 2. Enrich edges with duration information from KPIs
             edges = request.graph.edges
@@ -404,27 +449,30 @@ async def simulate_process(request: SimulationRequest):
             
             # 5. Apply process complexity adjustments and baseline detection
             # Check if this is the exact baseline process (most frequent variant)
-            baseline_activities = [
-                'Receive Customer Order', 'Validate Customer Order', 'Perform Credit Check',
-                'Approve Order', 'Schedule Order Fulfillment', 'Generate Pick List',
-                'Pack Items', 'Generate Shipping Label', 'Ship Order', 'Generate Invoice'
-            ]
+            # Get baseline activities dynamically from data (most frequent variant)
+            baseline_activities = data_loader.get_most_frequent_variant_activities()
+            logger.debug(f"   Baseline activities from most frequent variant: {baseline_activities}")
             
             # Check if activities match baseline
             is_baseline_activities = sorted(activities) == sorted(baseline_activities)
             
-            # Also check if KPIs are at default/baseline values (no modifications)
-            has_default_kpis = True
+            # Also check if KPIs match the baseline values from data (no user modifications)
+            has_baseline_kpis = True
             if is_baseline_activities and request.graph.kpis:
+                # Get baseline KPIs from data for comparison
+                baseline_kpis_data = data_loader.get_event_kpis_for_activities(baseline_activities)
+                
                 for activity, kpi_vals in request.graph.kpis.items():
                     avg_time = kpi_vals.get('avg_time', 2.0)
-                    # If any activity has significantly different time from default, not baseline
-                    if abs(avg_time - 2.0) > 0.1:  # Allow small floating point differences
-                        has_default_kpis = False
-                        logger.debug(f"   Activity '{activity}' has modified time: {avg_time}h (not baseline)")
+                    baseline_time = baseline_kpis_data.get(activity, {}).get('avg_time', 2.0)
+                    
+                    # If any activity has significantly different time from baseline data, not baseline
+                    if abs(avg_time - baseline_time) > 0.5:  # Allow 0.5h tolerance for rounding
+                        has_baseline_kpis = False
+                        logger.debug(f"   Activity '{activity}' has modified time: {avg_time}h vs baseline {baseline_time}h")
                         break
             
-            is_baseline_process = is_baseline_activities and has_default_kpis
+            is_baseline_process = is_baseline_activities and has_baseline_kpis
             
             if is_baseline_process:
                 # For exact baseline process with default KPIs, use baseline KPIs directly
@@ -432,14 +480,29 @@ async def simulate_process(request: SimulationRequest):
                 baseline_kpis_temp = model_manager.get_baseline_kpis()
                 predicted_kpis = baseline_kpis_temp.copy()
             else:
-                # For modified processes, trust the ML model predictions
-                # The model was trained on 1500+ orders with varying process lengths
-                # It already learned that more steps = worse performance
-                logger.info("   🤖 Using ML model predictions (no manual adjustments)")
+                # For modified processes, use ML model predictions
+                # The model now learns business logic from outcome features (has_rejection, etc.)
+                logger.info("   🤖 Using ML model predictions (with learned business logic)")
                 predicted_kpis = predicted_kpis_raw.copy()
                 
-                logger.debug(f"   Activity count: {len(activities)}")
-                logger.debug(f"   ML predicted KPIs: {predicted_kpis}")
+                # ===================================================================
+                # MANUAL BUSINESS LOGIC REMOVED - NOW LEARNED BY ML MODEL
+                # ===================================================================
+                # The ML model now has 8 outcome features that capture:
+                # - has_rejection, has_return, has_cancellation
+                # - process_completed, completeness_ratio, rejection_position
+                # - generates_revenue, has_discount
+                # 
+                # Training data was regenerated with realistic KPIs:
+                # - Rejected orders: 15% on-time delivery (vs 87% for successful)
+                # - Returns: 50% on-time delivery
+                # - Successful: 87% on-time delivery
+                #
+                # The model learns these patterns automatically from the 417-dim
+                # feature vector instead of relying on manual penalty rules.
+                # ===================================================================
+                
+                logger.debug(f"   ML predicted KPIs (no manual adjustments): {predicted_kpis}")
             
             # 6. Get baseline KPIs
             baseline_kpis = model_manager.get_baseline_kpis()

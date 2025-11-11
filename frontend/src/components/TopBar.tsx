@@ -16,9 +16,7 @@ export function TopBar({ variantName = 'Base Case' }: TopBarProps) {
         </div>
         <div className="flex items-center gap-3">
           <h1 className="text-gray-900">Order to Cash Simulation</h1>
-          <Badge variant={variantName === 'Base Case' ? 'secondary' : 'default'} className="text-xs">
-            {variantName}
-          </Badge>
+          
         </div>
       </div>
       

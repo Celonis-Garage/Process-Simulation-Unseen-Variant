@@ -1,0 +1,551 @@
+{
+  "case_id": "order_43",
+  "order_info": {
+    "order_value": 362.87,
+    "order_status": "Approved",
+    "num_items": 4,
+    "total_quantity": 13
+  },
+  "kpis": {
+    "on_time_delivery": 81.38,
+    "days_sales_outstanding": 39.73,
+    "order_accuracy": 92.48,
+    "invoice_accuracy": 85.97,
+    "avg_cost_delivery": 22.63
+  },
+  "entities": {
+    "users": [
+      "U001",
+      "U006",
+      "U002",
+      "U005"
+    ],
+    "items": [
+      {
+        "id": "I021",
+        "name": "Drawer Organizer",
+        "quantity": 2,
+        "line_total": 37.98
+      },
+      {
+        "id": "I017",
+        "name": "Cable Organizer",
+        "quantity": 1,
+        "line_total": 12.99
+      },
+      {
+        "id": "I001",
+        "name": "Ballpoint Pen (Pack of 12)",
+        "quantity": 4,
+        "line_total": 35.96
+      },
+      {
+        "id": "I022",
+        "name": "Printer Cartridge (Black)",
+        "quantity": 6,
+        "line_total": 275.94
+      }
+    ],
+    "suppliers": [
+      "S012",
+      "S004",
+      "S006",
+      "S006"
+    ]
+  },
+  "animation": {
+    "duration": 660.0,
+    "keyframes": [
+      {
+        "time": 0.0,
+        "position": [
+          -36,
+          0,
+          0
+        ],
+        "event": "Receive Customer Order",
+        "label": "Receive Order",
+        "timestamp": "2025-11-01T17:50:15.348555"
+      },
+      {
+        "time": 60.0,
+        "position": [
+          -28,
+          0,
+          0
+        ],
+        "event": "Validate Customer Order",
+        "label": "Validate",
+        "timestamp": "2025-11-01T17:51:15.348555"
+      },
+      {
+        "time": 120.0,
+        "position": [
+          -20,
+          0,
+          0
+        ],
+        "event": "Perform Credit Check",
+        "label": "Credit Check",
+        "timestamp": "2025-11-01T17:52:15.348555"
+      },
+      {
+        "time": 180.0,
+        "position": [
+          -12,
+          0,
+          0
+        ],
+        "event": "Approve Order",
+        "label": "Approve",
+        "timestamp": "2025-11-01T17:53:15.348555"
+      },
+      {
+        "time": 240.0,
+        "position": [
+          -4,
+          0,
+          0
+        ],
+        "event": "Schedule Order Fulfillment",
+        "label": "Schedule",
+        "timestamp": "2025-11-01T17:54:15.348555"
+      },
+      {
+        "time": 300.0,
+        "position": [
+          4,
+          0,
+          0
+        ],
+        "event": "Generate Pick List",
+        "label": "Pick List",
+        "timestamp": "2025-11-01T17:55:15.348555"
+      },
+      {
+        "time": 420.0,
+        "position": [
+          12,
+          0,
+          0
+        ],
+        "event": "Pack Items",
+        "label": "Pack",
+        "timestamp": "2025-11-01T17:57:15.348555"
+      },
+      {
+        "time": 480.0,
+        "position": [
+          20,
+          0,
+          0
+        ],
+        "event": "Generate Shipping Label",
+        "label": "Ship Label",
+        "timestamp": "2025-11-01T17:58:15.348555"
+      },
+      {
+        "time": 540.0,
+        "position": [
+          28,
+          0,
+          0
+        ],
+        "event": "Ship Order",
+        "label": "Ship",
+        "timestamp": "2025-11-01T17:59:15.348555"
+      },
+      {
+        "time": 660.0,
+        "position": [
+          36,
+          0,
+          0
+        ],
+        "event": "Generate Invoice",
+        "label": "Invoice",
+        "timestamp": "2025-11-01T18:01:15.348555"
+      }
+    ]
+  },
+  "locations": [
+    {
+      "name": "Receive Customer Order",
+      "label": "Receive Order",
+      "type": "main",
+      "position": [
+        -36,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Validate Customer Order",
+      "label": "Validate",
+      "type": "main",
+      "position": [
+        -28,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Perform Credit Check",
+      "label": "Credit Check",
+      "type": "main",
+      "position": [
+        -20,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Approve Order",
+      "label": "Approve",
+      "type": "main",
+      "position": [
+        -12,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Schedule Order Fulfillment",
+      "label": "Schedule",
+      "type": "main",
+      "position": [
+        -4,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Generate Pick List",
+      "label": "Pick List",
+      "type": "main",
+      "position": [
+        4,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Pack Items",
+      "label": "Pack",
+      "type": "main",
+      "position": [
+        12,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Generate Shipping Label",
+      "label": "Ship Label",
+      "type": "main",
+      "position": [
+        20,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Ship Order",
+      "label": "Ship",
+      "type": "main",
+      "position": [
+        28,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Generate Invoice",
+      "label": "Invoice",
+      "type": "main",
+      "position": [
+        36,
+        0,
+        0
+      ]
+    }
+  ],
+  "item_paths": [
+    {
+      "item_id": "I021",
+      "name": "Drawer Organizer",
+      "quantity": 2,
+      "category": "Storage",
+      "supplier_id": "S012",
+      "supplier_name": "BulkBuy",
+      "color": "#ec4899",
+      "keyframes": [
+        {
+          "time": 0.0,
+          "position": [
+            -32.0,
+            0,
+            10
+          ],
+          "label": "At BulkBuy",
+          "status": "waiting"
+        },
+        {
+          "time": 200.0,
+          "position": [
+            -32.0,
+            0,
+            10
+          ],
+          "label": "Departing from BulkBuy",
+          "status": "in_transit"
+        },
+        {
+          "time": 240.0,
+          "position": [
+            4,
+            0,
+            0
+          ],
+          "label": "Arrived at Warehouse",
+          "status": "arrived"
+        },
+        {
+          "time": 418.0,
+          "position": [
+            4,
+            0,
+            0
+          ],
+          "label": "Moving to Order",
+          "status": "ready"
+        },
+        {
+          "time": 420.0,
+          "position": [
+            12,
+            0,
+            0
+          ],
+          "label": "Merged with Order",
+          "status": "merged"
+        }
+      ]
+    },
+    {
+      "item_id": "I017",
+      "name": "Cable Organizer",
+      "quantity": 1,
+      "category": "Accessories",
+      "supplier_id": "S004",
+      "supplier_name": "Pacific",
+      "color": "#06b6d4",
+      "keyframes": [
+        {
+          "time": 0.0,
+          "position": [
+            -32.0,
+            0,
+            -10
+          ],
+          "label": "At Pacific",
+          "status": "waiting"
+        },
+        {
+          "time": 215.0,
+          "position": [
+            -32.0,
+            0,
+            -10
+          ],
+          "label": "Departing from Pacific",
+          "status": "in_transit"
+        },
+        {
+          "time": 255.0,
+          "position": [
+            4,
+            0,
+            0
+          ],
+          "label": "Arrived at Warehouse",
+          "status": "arrived"
+        },
+        {
+          "time": 418.0,
+          "position": [
+            4,
+            0,
+            0
+          ],
+          "label": "Moving to Order",
+          "status": "ready"
+        },
+        {
+          "time": 420.0,
+          "position": [
+            12,
+            0,
+            0
+          ],
+          "label": "Merged with Order",
+          "status": "merged"
+        }
+      ]
+    },
+    {
+      "item_id": "I001",
+      "name": "Ballpoint Pen (Pack of 12)",
+      "quantity": 4,
+      "category": "Office Supplies",
+      "supplier_id": "S006",
+      "supplier_name": "National",
+      "color": "#10b981",
+      "keyframes": [
+        {
+          "time": 0.0,
+          "position": [
+            0.0,
+            0,
+            10
+          ],
+          "label": "At National",
+          "status": "waiting"
+        },
+        {
+          "time": 230.0,
+          "position": [
+            0.0,
+            0,
+            10
+          ],
+          "label": "Departing from National",
+          "status": "in_transit"
+        },
+        {
+          "time": 270.0,
+          "position": [
+            4,
+            0,
+            0
+          ],
+          "label": "Arrived at Warehouse",
+          "status": "arrived"
+        },
+        {
+          "time": 418.0,
+          "position": [
+            4,
+            0,
+            0
+          ],
+          "label": "Moving to Order",
+          "status": "ready"
+        },
+        {
+          "time": 420.0,
+          "position": [
+            12,
+            0,
+            0
+          ],
+          "label": "Merged with Order",
+          "status": "merged"
+        }
+      ]
+    },
+    {
+      "item_id": "I022",
+      "name": "Printer Cartridge (Black)",
+      "quantity": 6,
+      "category": "Printing",
+      "supplier_id": "S006",
+      "supplier_name": "National",
+      "color": "#8b5cf6",
+      "keyframes": [
+        {
+          "time": 0.0,
+          "position": [
+            0.0,
+            0,
+            10
+          ],
+          "label": "At National",
+          "status": "waiting"
+        },
+        {
+          "time": 245.0,
+          "position": [
+            0.0,
+            0,
+            10
+          ],
+          "label": "Departing from National",
+          "status": "in_transit"
+        },
+        {
+          "time": 285.0,
+          "position": [
+            4,
+            0,
+            0
+          ],
+          "label": "Arrived at Warehouse",
+          "status": "arrived"
+        },
+        {
+          "time": 418.0,
+          "position": [
+            4,
+            0,
+            0
+          ],
+          "label": "Moving to Order",
+          "status": "ready"
+        },
+        {
+          "time": 420.0,
+          "position": [
+            12,
+            0,
+            0
+          ],
+          "label": "Merged with Order",
+          "status": "merged"
+        }
+      ]
+    }
+  ],
+  "supplier_locations": [
+    {
+      "supplier_id": "S012",
+      "label": "BulkBuy",
+      "country": "USA",
+      "position": [
+        -32.0,
+        0,
+        10
+      ]
+    },
+    {
+      "supplier_id": "S006",
+      "label": "National",
+      "country": "USA",
+      "position": [
+        0.0,
+        0,
+        10
+      ]
+    },
+    {
+      "supplier_id": "S004",
+      "label": "Pacific",
+      "country": "China",
+      "position": [
+        -32.0,
+        0,
+        -10
+      ]
+    }
+  ]
+}

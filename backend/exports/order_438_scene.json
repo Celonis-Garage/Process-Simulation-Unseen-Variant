@@ -1,0 +1,348 @@
+{
+  "case_id": "order_438",
+  "order_info": {
+    "order_value": 359.96,
+    "order_status": "Approved",
+    "num_items": 1,
+    "total_quantity": 4
+  },
+  "kpis": {
+    "on_time_delivery": 78.2,
+    "days_sales_outstanding": 35.29,
+    "order_accuracy": 92.97,
+    "invoice_accuracy": 84.05,
+    "avg_cost_delivery": 30.54
+  },
+  "entities": {
+    "users": [
+      "U001",
+      "U004",
+      "U006",
+      "U002"
+    ],
+    "items": [
+      {
+        "id": "I008",
+        "name": "Keyboard (Mechanical)",
+        "quantity": 4,
+        "line_total": 359.96
+      }
+    ],
+    "suppliers": [
+      "S016"
+    ]
+  },
+  "animation": {
+    "duration": 1037700.0,
+    "keyframes": [
+      {
+        "time": 0.0,
+        "position": [
+          -18,
+          0,
+          0
+        ],
+        "event": "Receive Customer Order",
+        "label": "Receive Order",
+        "timestamp": "2034-12-14T15:49:15.348555"
+      },
+      {
+        "time": 60.0,
+        "position": [
+          -14,
+          0,
+          0
+        ],
+        "event": "Validate Customer Order",
+        "label": "Validate",
+        "timestamp": "2034-12-14T15:50:15.348555"
+      },
+      {
+        "time": 120.0,
+        "position": [
+          -10,
+          0,
+          0
+        ],
+        "event": "Perform Credit Check",
+        "label": "Credit Check",
+        "timestamp": "2034-12-14T15:51:15.348555"
+      },
+      {
+        "time": 180.0,
+        "position": [
+          -6,
+          0,
+          0
+        ],
+        "event": "Approve Order",
+        "label": "Approve",
+        "timestamp": "2034-12-14T15:52:15.348555"
+      },
+      {
+        "time": 240.0,
+        "position": [
+          -2,
+          0,
+          0
+        ],
+        "event": "Schedule Order Fulfillment",
+        "label": "Schedule",
+        "timestamp": "2034-12-14T15:53:15.348555"
+      },
+      {
+        "time": 300.0,
+        "position": [
+          2,
+          0,
+          0
+        ],
+        "event": "Generate Pick List",
+        "label": "Pick List",
+        "timestamp": "2034-12-14T15:54:15.348555"
+      },
+      {
+        "time": 420.0,
+        "position": [
+          6,
+          0,
+          0
+        ],
+        "event": "Pack Items",
+        "label": "Pack",
+        "timestamp": "2034-12-14T15:56:15.348555"
+      },
+      {
+        "time": 480.0,
+        "position": [
+          10,
+          0,
+          0
+        ],
+        "event": "Generate Shipping Label",
+        "label": "Ship Label",
+        "timestamp": "2034-12-14T15:57:15.348555"
+      },
+      {
+        "time": 540.0,
+        "position": [
+          14,
+          0,
+          0
+        ],
+        "event": "Ship Order",
+        "label": "Ship",
+        "timestamp": "2034-12-14T15:58:15.348555"
+      },
+      {
+        "time": 660.0,
+        "position": [
+          18,
+          0,
+          0
+        ],
+        "event": "Generate Invoice",
+        "label": "Invoice",
+        "timestamp": "2034-12-14T16:00:15.348555"
+      },
+      {
+        "time": 1037700.0,
+        "position": [
+          0.0,
+          0,
+          4
+        ],
+        "event": "Apply Discount",
+        "label": "Discount",
+        "timestamp": "2034-12-26T16:04:15.348555"
+      }
+    ]
+  },
+  "locations": [
+    {
+      "name": "Receive Customer Order",
+      "label": "Receive Order",
+      "type": "main",
+      "position": [
+        -18,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Validate Customer Order",
+      "label": "Validate",
+      "type": "main",
+      "position": [
+        -14,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Perform Credit Check",
+      "label": "Credit Check",
+      "type": "main",
+      "position": [
+        -10,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Approve Order",
+      "label": "Approve",
+      "type": "main",
+      "position": [
+        -6,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Schedule Order Fulfillment",
+      "label": "Schedule",
+      "type": "main",
+      "position": [
+        -2,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Generate Pick List",
+      "label": "Pick List",
+      "type": "main",
+      "position": [
+        2,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Pack Items",
+      "label": "Pack",
+      "type": "main",
+      "position": [
+        6,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Generate Shipping Label",
+      "label": "Ship Label",
+      "type": "main",
+      "position": [
+        10,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Ship Order",
+      "label": "Ship",
+      "type": "main",
+      "position": [
+        14,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Generate Invoice",
+      "label": "Invoice",
+      "type": "main",
+      "position": [
+        18,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Apply Discount",
+      "label": "Discount",
+      "type": "deviation",
+      "position": [
+        0.0,
+        0,
+        4
+      ]
+    }
+  ],
+  "item_paths": [
+    {
+      "item_id": "I008",
+      "name": "Keyboard (Mechanical)",
+      "quantity": 4,
+      "category": "Electronics",
+      "supplier_id": "S016",
+      "supplier_name": "SmartSource",
+      "color": "#3b82f6",
+      "keyframes": [
+        {
+          "time": 0.0,
+          "position": [
+            -16.0,
+            0,
+            8
+          ],
+          "label": "At SmartSource",
+          "status": "waiting"
+        },
+        {
+          "time": 200.0,
+          "position": [
+            -16.0,
+            0,
+            8
+          ],
+          "label": "Departing from SmartSource",
+          "status": "in_transit"
+        },
+        {
+          "time": 240.0,
+          "position": [
+            2,
+            0,
+            0
+          ],
+          "label": "Arrived at Warehouse",
+          "status": "arrived"
+        },
+        {
+          "time": 418.0,
+          "position": [
+            2,
+            0,
+            0
+          ],
+          "label": "Moving to Order",
+          "status": "ready"
+        },
+        {
+          "time": 420.0,
+          "position": [
+            6,
+            0,
+            0
+          ],
+          "label": "Merged with Order",
+          "status": "merged"
+        }
+      ]
+    }
+  ],
+  "supplier_locations": [
+    {
+      "supplier_id": "S016",
+      "label": "SmartSource",
+      "country": "UK",
+      "position": [
+        -16.0,
+        0,
+        8
+      ]
+    }
+  ]
+}

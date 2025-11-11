@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import random
 import logging
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Any
 from pathlib import Path
 
 # Configure logging
@@ -76,7 +76,8 @@ class ScenarioGenerator:
         activities: List[str],
         num_users: int = None,
         num_items: int = None,
-        session_seed: int = None
+        session_seed: int = None,
+        entity_constraints: Dict[str, Any] = None
     ) -> Tuple[List[str], List[Dict], List[str], float]:
         """
         Generate deterministic entity assignments for a scenario.
@@ -86,6 +87,7 @@ class ScenarioGenerator:
             num_users: Number of users to assign (default: deterministic 3)
             num_items: Number of items to assign (default: deterministic 5)
             session_seed: Fixed seed for the session (if None, uses hash of activities)
+            entity_constraints: Optional dict with user-specified constraints (user_names, item_names, etc.)
         
         Returns:
             Tuple of (user_ids, items_data, supplier_ids, order_value)
@@ -102,6 +104,14 @@ class ScenarioGenerator:
         
         random.seed(seed)
         np.random.seed(seed)
+        
+        # Apply entity constraints if provided
+        if entity_constraints:
+            logger.info(f"Applying entity constraints: {entity_constraints}")
+            if 'num_users' in entity_constraints:
+                num_users = entity_constraints['num_users']
+            if 'num_items' in entity_constraints:
+                num_items = entity_constraints['num_items']
         
         # 1. Assign users (deterministic count based on seed)
         if num_users is None:

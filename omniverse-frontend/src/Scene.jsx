@@ -59,31 +59,169 @@ function ItemSphere({ position, color }) {
   );
 }
 
+// Station component with context-appropriate 3D shapes
 function Location({ position, label, isActive, type }) {
   const isMain = type === 'main';
   
+  // Determine station type from label
+  const getStationType = (label) => {
+    const labelLower = label.toLowerCase();
+    if (labelLower.includes('receive') || labelLower.includes('customer') || labelLower.includes('order')) return 'reception';
+    if (labelLower.includes('validate') || labelLower.includes('check')) return 'validation';
+    if (labelLower.includes('credit') || labelLower.includes('approve')) return 'office';
+    if (labelLower.includes('schedule') || labelLower.includes('fulfillment')) return 'planning';
+    if (labelLower.includes('pick') || labelLower.includes('warehouse')) return 'warehouse';
+    if (labelLower.includes('pack') || labelLower.includes('items')) return 'packing';
+    if (labelLower.includes('ship') || labelLower.includes('label')) return 'shipping';
+    if (labelLower.includes('invoice') || labelLower.includes('payment')) return 'accounting';
+    if (labelLower.includes('reject')) return 'rejection';
+    if (labelLower.includes('return')) return 'returns';
+    if (labelLower.includes('discount')) return 'discount';
+    return 'generic';
+  };
+  
+  const stationType = getStationType(label);
+  
+  // Color scheme for different station types
+  const getStationColor = () => {
+    switch(stationType) {
+      case 'reception': return '#6366f1'; // Indigo
+      case 'validation': return '#8b5cf6'; // Purple
+      case 'office': return '#0ea5e9'; // Sky blue
+      case 'planning': return '#06b6d4'; // Cyan
+      case 'warehouse': return '#10b981'; // Green
+      case 'packing': return '#f59e0b'; // Amber
+      case 'shipping': return '#ef4444'; // Red
+      case 'accounting': return '#ec4899'; // Pink
+      case 'rejection': return '#dc2626'; // Dark red
+      case 'returns': return '#f97316'; // Orange
+      case 'discount': return '#84cc16'; // Lime
+      default: return '#6b7280'; // Gray
+    }
+  };
+  
+  const baseColor = getStationColor();
+  const emissiveColor = isActive ? '#3b82f6' : baseColor;
+  
+  // Render different 3D shapes based on station type
+  const renderStationShape = () => {
+    const material = (
+      <meshStandardMaterial 
+        color={baseColor} 
+        emissive={emissiveColor}
+        emissiveIntensity={isActive ? 0.5 : 0.2}
+        metalness={0.4}
+        roughness={0.5}
+      />
+    );
+    
+    switch(stationType) {
+      case 'reception':
+        // Reception desk - flat box with a counter (3x scale)
+        return (
+          <>
+            <Box args={[3.0, 0.9, 1.8]} position={[0, 0.45, 0]}>{material}</Box>
+            <Box args={[2.4, 0.45, 1.5]} position={[0, 1.14, 0]}>{material}</Box>
+          </>
+        );
+      
+      case 'warehouse':
+        // Warehouse - large building-like structure with shelving (3x scale)
+        return (
+          <>
+            <Box args={[3.6, 2.4, 2.4]} position={[0, 1.2, 0]}>{material}</Box>
+            <Box args={[3.0, 1.8, 0.9]} position={[0, 0.9, -0.9]}>{material}</Box>
+            <Box args={[3.0, 1.8, 0.9]} position={[0, 0.9, 0.9]}>{material}</Box>
+          </>
+        );
+      
+      case 'packing':
+        // Packing station - table with boxes on top (3x scale)
+        return (
+          <>
+            <Box args={[3.0, 0.6, 1.8]} position={[0, 0.3, 0]}>{material}</Box>
+            <Box args={[0.9, 0.9, 0.9]} position={[-0.6, 1.05, 0]}>{material}</Box>
+            <Box args={[0.75, 0.75, 0.75]} position={[0.6, 0.99, 0.3]}>{material}</Box>
+          </>
+        );
+      
+      case 'shipping':
+        // Shipping - truck/loading dock shape (3x scale)
+        return (
+          <>
+            <Box args={[2.4, 1.5, 1.8]} position={[0, 0.75, 0]}>{material}</Box>
+            <Box args={[1.2, 0.9, 1.2]} position={[1.5, 0.45, 0]}>{material}</Box>
+          </>
+        );
+      
+      case 'office':
+      case 'validation':
+        // Office desk - simple desk with monitor (3x scale)
+        return (
+          <>
+            <Box args={[2.4, 0.6, 1.5]} position={[0, 0.3, 0]}>{material}</Box>
+            <Box args={[0.9, 0.9, 0.15]} position={[0, 1.05, 0.3]}>{material}</Box>
+          </>
+        );
+      
+      case 'planning':
+        // Planning station - desk with documents (flat boxes) (3x scale)
+        return (
+          <>
+            <Box args={[2.7, 0.6, 1.8]} position={[0, 0.3, 0]}>{material}</Box>
+            <Box args={[0.6, 0.06, 0.9]} position={[-0.6, 0.63, 0]}>{material}</Box>
+            <Box args={[0.6, 0.06, 0.9]} position={[0.6, 0.63, 0]}>{material}</Box>
+          </>
+        );
+      
+      case 'accounting':
+        // Accounting - computer workstation (3x scale)
+        return (
+          <>
+            <Box args={[2.1, 0.6, 1.5]} position={[0, 0.3, 0]}>{material}</Box>
+            <Box args={[1.2, 1.2, 0.15]} position={[0, 1.2, 0.3]}>{material}</Box>
+            <Box args={[0.3, 0.6, 0.3]} position={[0, 0.9, -0.3]}>{material}</Box>
+          </>
+        );
+      
+      case 'rejection':
+      case 'returns':
+        // Returns/Rejection - cross or X-shape (3x scale)
+        return (
+          <>
+            <Box args={[2.4, 0.6, 0.6]} position={[0, 0.9, 0]} rotation={[0, 0, Math.PI/4]}>{material}</Box>
+            <Box args={[2.4, 0.6, 0.6]} position={[0, 0.9, 0]} rotation={[0, 0, -Math.PI/4]}>{material}</Box>
+          </>
+        );
+      
+      case 'discount':
+        // Discount - star-like shape (3x scale)
+        return (
+          <>
+            <Box args={[1.8, 0.9, 0.6]} position={[0, 0.9, 0]}>{material}</Box>
+            <Box args={[0.6, 0.9, 1.8]} position={[0, 0.9, 0]}>{material}</Box>
+          </>
+        );
+      
+      default:
+        // Generic - simple box (3x scale)
+        return <Box args={[1.8, 1.8, 1.8]} position={[0, 0.9, 0]}>{material}</Box>;
+    }
+  };
+  
   return (
     <group position={position}>
-      {/* Station block - black (doubled height) */}
-      <Box args={[0.6, 0.6, 0.6]} position={[0, 0.3, 0]}>
-        <meshStandardMaterial 
-          color="#000000" 
-          emissive={isActive ? "#3b82f6" : "#000000"}
-          emissiveIntensity={isActive ? 0.4 : 0}
-          metalness={0.3}
-          roughness={0.6}
-        />
-      </Box>
+      {renderStationShape()}
       
-      {/* Label below the block on ground plane */}
+      {/* Label below the station on ground plane (adjusted for 3x larger stations) */}
       <Text
-        position={[0, 0.02, 1.0]}
+        position={[0, 0.02, 2.5]}
         rotation={[-Math.PI / 2, 0, 0]}
-        fontSize={0.45}
+        fontSize={0.7}
         color={isActive ? "#3b82f6" : "#1f2937"}
         anchorX="center"
         anchorY="middle"
-        maxWidth={3.5}
+        maxWidth={5.5}
         fontWeight="bold"
       >
         {label}
@@ -93,27 +231,41 @@ function Location({ position, label, isActive, type }) {
 }
 
 function SupplierLocation({ position, label, country }) {
+  const supplierColor = '#10b981'; // Green for suppliers
+  
+  const material = (
+    <meshStandardMaterial 
+      color={supplierColor} 
+      emissive={supplierColor}
+      emissiveIntensity={0.25}
+      metalness={0.3}
+      roughness={0.6}
+    />
+  );
+  
   return (
     <group position={position}>
-      <Box args={[0.4, 0.2, 0.4]} position={[0, 0.1, 0]}>
-        <meshStandardMaterial 
-          color="#10b981" 
-          emissive="#10b981"
-          emissiveIntensity={0.2}
-          metalness={0.2}
-          roughness={0.7}
-        />
-      </Box>
+      {/* Factory/Building structure - main building (3x scale) */}
+      <Box args={[1.8, 1.2, 1.5]} position={[0, 0.6, 0]}>{material}</Box>
       
-      {/* Label on ground plane below the supplier box */}
+      {/* Chimney/Tower (3x scale) */}
+      <Box args={[0.45, 0.9, 0.45]} position={[0.6, 1.65, 0.45]}>{material}</Box>
+      
+      {/* Side wing (3x scale) */}
+      <Box args={[0.9, 0.75, 1.2]} position={[-1.05, 0.375, 0]}>{material}</Box>
+      
+      {/* Loading dock (3x scale) */}
+      <Box args={[1.2, 0.3, 0.6]} position={[0, 0.15, -1.05]}>{material}</Box>
+      
+      {/* Label on ground plane below the supplier (adjusted for 3x scale) */}
       <Text
-        position={[0, 0.02, 0.8]}
+        position={[0, 0.02, 2.2]}
         rotation={[-Math.PI / 2, 0, 0]}
-        fontSize={0.4}
+        fontSize={0.65}
         color="#059669"
         anchorX="center"
         anchorY="middle"
-        maxWidth={3.5}
+        maxWidth={5.0}
         fontWeight="bold"
       >
         {label}
@@ -446,7 +598,7 @@ function Scene({ sceneData, currentTime, isPlaying, playbackSpeed = 1, onTimeUpd
 
   return (
     <Canvas
-      camera={{ position: [0, 25, 20], fov: 60 }}
+      camera={{ position: [0, 35, 30], fov: 70 }}
       style={{ background: '#f3f4f6' }}
     >
       {/* Lighting - adjusted for light theme */}
@@ -454,14 +606,14 @@ function Scene({ sceneData, currentTime, isPlaying, playbackSpeed = 1, onTimeUpd
       <directionalLight position={[10, 15, 5]} intensity={1.3} castShadow />
       <pointLight position={[-10, 10, -10]} intensity={0.5} color="#60a5fa" />
 
-      {/* Ground plane - lighter */}
+      {/* Ground plane - wider to accommodate 2x spacing */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
-        <planeGeometry args={[60, 30]} />
+        <planeGeometry args={[120, 50]} />
         <meshStandardMaterial color="#f0f0f0" />
       </mesh>
 
-      {/* Grid - more visible */}
-      <gridHelper args={[60, 30, '#cccccc', '#e0e0e0']} position={[0, 0.01, 0]} />
+      {/* Grid - wider and more divisions */}
+      <gridHelper args={[120, 60, '#cccccc', '#e0e0e0']} position={[0, 0.01, 0]} />
 
       {/* Process locations */}
       {locations.map((loc, idx) => (

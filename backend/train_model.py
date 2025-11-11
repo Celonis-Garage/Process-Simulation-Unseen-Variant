@@ -136,10 +136,11 @@ def load_event_log():
 
 
 def extract_features_for_order(order_id, df_events, df_users, df_items, df_suppliers):
-    """Extract 409-dimensional feature vector for one order"""
+    """Extract 417-dimensional feature vector for one order"""
     
     # Get events for this order
     order_events = df_events[df_events['order_id'] == order_id].copy()
+    activities = order_events['event_name'].tolist()
     
     # 1. Transition matrix (frequency) - 13x13 = 169
     freq_matrix = np.zeros((13, 13))
@@ -200,13 +201,50 @@ def extract_features_for_order(order_id, df_events, df_users, df_items, df_suppl
         if 1 <= supplier_id_num <= 16:
             supplier_vector[supplier_id_num - 1] = 1
     
-    # Concatenate all features
+    # 6. Outcome features - 8 (NEW!)
+    # These explicitly capture business logic for the model to learn
+    activity_set = set(activities)
+    
+    # Baseline activities for completeness
+    baseline_activities = [
+        'Receive Customer Order', 'Validate Customer Order', 'Perform Credit Check',
+        'Approve Order', 'Schedule Order Fulfillment', 'Generate Pick List',
+        'Pack Items', 'Generate Shipping Label', 'Ship Order', 'Generate Invoice'
+    ]
+    
+    has_rejection = 1.0 if 'Reject Order' in activity_set else 0.0
+    has_return = 1.0 if 'Process Return Request' in activity_set else 0.0
+    has_cancellation = 1.0 if 'Cancel Order' in activity_set else 0.0
+    process_completed = 1.0 if 'Generate Invoice' in activity_set else 0.0
+    completeness_ratio = min(len(activities) / len(baseline_activities), 2.0)
+    
+    if has_rejection and 'Reject Order' in activities:
+        rejection_position = activities.index('Reject Order') / max(len(activities), 1)
+    else:
+        rejection_position = 0.0
+    
+    generates_revenue = 1.0 if ('Ship Order' in activity_set and 'Generate Invoice' in activity_set) else 0.0
+    has_discount = 1.0 if 'Apply Discount' in activity_set else 0.0
+    
+    outcome_features = np.array([
+        has_rejection,
+        has_return,
+        has_cancellation,
+        process_completed,
+        completeness_ratio,
+        rejection_position,
+        generates_revenue,
+        has_discount
+    ])
+    
+    # Concatenate all features (now 417 dimensions)
     feature_vector = np.concatenate([
         freq_features,
         duration_features,
         user_vector,
         items_features,
-        supplier_vector
+        supplier_vector,
+        outcome_features  # NEW: 8 outcome features
     ])
     
     return feature_vector
@@ -269,12 +307,13 @@ def normalize_features(X_train, X_val, X_test):
     """Apply feature normalization with separate scalers"""
     logger.info("Applying feature normalization...")
     
-    # Split features into groups
+    # Split features into groups (updated for 417 dimensions)
     freq_idx = slice(0, 169)
     duration_idx = slice(169, 338)
     users_idx = slice(338, 345)
     items_idx = slice(345, 393)
     suppliers_idx = slice(393, 409)
+    outcome_idx = slice(409, 417)  # NEW: Outcome features
     
     # Extract feature groups
     X_freq_train = X_train[:, freq_idx]
@@ -282,18 +321,21 @@ def normalize_features(X_train, X_val, X_test):
     X_users_train = X_train[:, users_idx]
     X_items_train = X_train[:, items_idx]
     X_suppliers_train = X_train[:, suppliers_idx]
+    X_outcome_train = X_train[:, outcome_idx]  # NEW
     
     X_freq_val = X_val[:, freq_idx]
     X_duration_val = X_val[:, duration_idx]
     X_users_val = X_val[:, users_idx]
     X_items_val = X_val[:, items_idx]
     X_suppliers_val = X_val[:, suppliers_idx]
+    X_outcome_val = X_val[:, outcome_idx]  # NEW
     
     X_freq_test = X_test[:, freq_idx]
     X_duration_test = X_test[:, duration_idx]
     X_users_test = X_test[:, users_idx]
     X_items_test = X_test[:, items_idx]
     X_suppliers_test = X_test[:, suppliers_idx]
+    X_outcome_test = X_test[:, outcome_idx]  # NEW
     
     # Split items into quantity and line total
     items_qty_train = X_items_train[:, ::2].reshape(-1, 24)
@@ -310,6 +352,7 @@ def normalize_features(X_train, X_val, X_test):
     scaler_items_qty = StandardScaler()
     scaler_items_amt = RobustScaler()
     scaler_suppliers = MinMaxScaler()
+    scaler_outcome = MinMaxScaler()  # NEW: For outcome features (already in 0-2 range)
     
     # Fit and transform
     X_freq_train_scaled = scaler_freq.fit_transform(X_freq_train)
@@ -336,6 +379,10 @@ def normalize_features(X_train, X_val, X_test):
     X_suppliers_val_scaled = scaler_suppliers.transform(X_suppliers_val)
     X_suppliers_test_scaled = scaler_suppliers.transform(X_suppliers_test)
     
+    X_outcome_train_scaled = scaler_outcome.fit_transform(X_outcome_train)  # NEW
+    X_outcome_val_scaled = scaler_outcome.transform(X_outcome_val)  # NEW
+    X_outcome_test_scaled = scaler_outcome.transform(X_outcome_test)  # NEW
+    
     # Interleave items back together
     items_train_scaled = np.empty((len(items_qty_train_scaled), 48))
     items_train_scaled[:, ::2] = items_qty_train_scaled
@@ -349,20 +396,20 @@ def normalize_features(X_train, X_val, X_test):
     items_test_scaled[:, ::2] = items_qty_test_scaled
     items_test_scaled[:, 1::2] = items_amt_test_scaled
     
-    # Concatenate all scaled features
+    # Concatenate all scaled features (now 417 dimensions)
     X_train_scaled = np.concatenate([
         X_freq_train_scaled, X_duration_train_scaled, X_users_train_scaled,
-        items_train_scaled, X_suppliers_train_scaled
+        items_train_scaled, X_suppliers_train_scaled, X_outcome_train_scaled  # NEW
     ], axis=1)
     
     X_val_scaled = np.concatenate([
         X_freq_val_scaled, X_duration_val_scaled, X_users_val_scaled,
-        items_val_scaled, X_suppliers_val_scaled
+        items_val_scaled, X_suppliers_val_scaled, X_outcome_val_scaled  # NEW
     ], axis=1)
     
     X_test_scaled = np.concatenate([
         X_freq_test_scaled, X_duration_test_scaled, X_users_test_scaled,
-        items_test_scaled, X_suppliers_test_scaled
+        items_test_scaled, X_suppliers_test_scaled, X_outcome_test_scaled  # NEW
     ], axis=1)
     
     scalers = {
@@ -371,7 +418,8 @@ def normalize_features(X_train, X_val, X_test):
         'users': scaler_users,
         'items_qty': scaler_items_qty,
         'items_amt': scaler_items_amt,
-        'suppliers': scaler_suppliers
+        'suppliers': scaler_suppliers,
+        'outcome': scaler_outcome  # NEW
     }
     
     logger.info(f"✓ Normalization complete")
@@ -384,7 +432,7 @@ def normalize_features(X_train, X_val, X_test):
 
 def build_model():
     """Build the KPI prediction model"""
-    inputs = keras.Input(shape=(409,), name='process_features')
+    inputs = keras.Input(shape=(417,), name='process_features')  # Updated from 409 to 417
     
     # Shared layers with regularization
     x = keras.layers.Dense(256, kernel_regularizer=keras.regularizers.l2(0.0001))(inputs)

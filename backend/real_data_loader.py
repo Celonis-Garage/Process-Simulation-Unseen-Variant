@@ -259,6 +259,21 @@ class RealDataLoader:
         
         return result
     
+    def get_most_frequent_variant_activities(self) -> List[str]:
+        """
+        Get the activity list of the most frequent variant.
+        This is used as the baseline for simulation comparison.
+        """
+        variants = self.get_process_variants(top_n=1)
+        if variants:
+            return variants[0]['activities']
+        # Fallback to hardcoded list if no data available
+        return [
+            'Receive Customer Order', 'Validate Customer Order', 'Perform Credit Check',
+            'Approve Order', 'Schedule Order Fulfillment', 'Generate Pick List',
+            'Pack Items', 'Generate Shipping Label', 'Ship Order', 'Generate Invoice'
+        ]
+    
     def get_process_flow_metrics(self) -> Dict[str, Any]:
         """
         Calculate process flow metrics including edge frequencies and timing.
@@ -371,8 +386,9 @@ class RealDataLoader:
         base_timestamp = pd.Timestamp.now()
         
         for case_num in range(n_cases):
-            # Create a NEW order ID that doesn't exist in the data
-            case_id = f"USER-DESIGN-{case_num + 1:03d}"
+            # Use consistent case ID for user-designed processes
+            # This ensures the case ID stays the same throughout the session
+            case_id = f"C{case_num + 1:03d}"
             
             # Generate random order value similar to data distribution
             avg_order_value = self.df_orders['order_value'].mean()

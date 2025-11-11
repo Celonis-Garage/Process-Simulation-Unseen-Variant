@@ -36,7 +36,15 @@ DURATION_MATRIX_DIM = 13 * 13  # 169
 USER_VECTOR_DIM = 7  # 7
 ITEMS_MATRIX_DIM = 24 * 2  # 48 (quantity + line total)
 SUPPLIER_VECTOR_DIM = 16  # 16
-TOTAL_FEATURE_DIM = FREQ_MATRIX_DIM + DURATION_MATRIX_DIM + USER_VECTOR_DIM + ITEMS_MATRIX_DIM + SUPPLIER_VECTOR_DIM  # 409
+OUTCOME_FEATURES_DIM = 8  # NEW: Process outcome features
+TOTAL_FEATURE_DIM = FREQ_MATRIX_DIM + DURATION_MATRIX_DIM + USER_VECTOR_DIM + ITEMS_MATRIX_DIM + SUPPLIER_VECTOR_DIM + OUTCOME_FEATURES_DIM  # 417
+
+# Baseline activities for completeness calculation
+BASELINE_ACTIVITIES = [
+    'Receive Customer Order', 'Validate Customer Order', 'Perform Credit Check',
+    'Approve Order', 'Schedule Order Fulfillment', 'Generate Pick List',
+    'Pack Items', 'Generate Shipping Label', 'Ship Order', 'Generate Invoice'
+]
 
 
 def build_transition_matrix_frequency(
@@ -195,6 +203,62 @@ def build_supplier_vector(
     return vector
 
 
+def build_outcome_features(activities: List[str]) -> np.ndarray:
+    """
+    Build process outcome features (8-dim vector)
+    
+    These features explicitly capture business logic:
+    1. has_rejection: 1 if 'Reject Order' in process
+    2. has_return: 1 if 'Process Return Request' in process
+    3. has_cancellation: 1 if 'Cancel Order' in process
+    4. process_completed: 1 if 'Generate Invoice' in process (successful order)
+    5. completeness_ratio: ratio of activities to baseline (0.0-2.0+)
+    6. rejection_position: where rejection occurs in flow (0.0-1.0, 0 if no rejection)
+    7. generates_revenue: 1 if both 'Ship Order' and 'Generate Invoice' exist
+    8. has_discount: 1 if 'Apply Discount' in process
+    
+    Args:
+        activities: List of activity names in the process
+    
+    Returns:
+        8-dim feature array
+    """
+    # Convert to set for O(1) lookup
+    activity_set = set(activities)
+    
+    # 1. Binary outcome flags
+    has_rejection = 1.0 if 'Reject Order' in activity_set else 0.0
+    has_return = 1.0 if 'Process Return Request' in activity_set else 0.0
+    has_cancellation = 1.0 if 'Cancel Order' in activity_set else 0.0
+    process_completed = 1.0 if 'Generate Invoice' in activity_set else 0.0
+    
+    # 2. Process completeness (normalized to reasonable range)
+    completeness_ratio = min(len(activities) / len(BASELINE_ACTIVITIES), 2.0)
+    
+    # 3. Rejection position (early rejection = worse)
+    if has_rejection and 'Reject Order' in activities:
+        rejection_position = activities.index('Reject Order') / max(len(activities), 1)
+    else:
+        rejection_position = 0.0
+    
+    # 4. Revenue generation (successful order)
+    generates_revenue = 1.0 if ('Ship Order' in activity_set and 'Generate Invoice' in activity_set) else 0.0
+    
+    # 5. Discount applied
+    has_discount = 1.0 if 'Apply Discount' in activity_set else 0.0
+    
+    return np.array([
+        has_rejection,
+        has_return,
+        has_cancellation,
+        process_completed,
+        completeness_ratio,
+        rejection_position,
+        generates_revenue,
+        has_discount
+    ])
+
+
 def extract_features_from_scenario(
     activities: List[str],
     edges: List[Dict],
@@ -204,7 +268,7 @@ def extract_features_from_scenario(
     scalers: Optional[Dict] = None
 ) -> np.ndarray:
     """
-    Extract complete 409-dimensional feature vector from a process scenario
+    Extract complete 417-dimensional feature vector from a process scenario
     
     Args:
         activities: List of activity names
@@ -215,7 +279,7 @@ def extract_features_from_scenario(
         scalers: Optional dict of fitted scalers for normalization
     
     Returns:
-        409-dimensional feature vector (scaled if scalers provided)
+        417-dimensional feature vector (scaled if scalers provided)
     """
     # Build individual feature components
     freq_matrix = build_transition_matrix_frequency(activities, edges)
@@ -223,6 +287,7 @@ def extract_features_from_scenario(
     user_vector = build_user_vector(users_involved)
     items_matrix = build_items_matrix(items_involved)
     supplier_vector = build_supplier_vector(suppliers_involved)
+    outcome_features = build_outcome_features(activities)  # NEW: 8-dim outcome features
     
     # Split items matrix into quantity and line total
     items_qty = items_matrix[::2]  # Every other element (quantity)
@@ -237,6 +302,12 @@ def extract_features_from_scenario(
         items_amt_scaled = scalers['items_amt'].transform(items_amt.reshape(1, -1)).flatten()
         supplier_vector_scaled = scalers['suppliers'].transform(supplier_vector.reshape(1, -1)).flatten()
         
+        # Outcome features: scale if scaler exists, otherwise use raw
+        if 'outcome' in scalers:
+            outcome_features_scaled = scalers['outcome'].transform(outcome_features.reshape(1, -1)).flatten()
+        else:
+            outcome_features_scaled = outcome_features  # Already 0-2 range, minimal scaling needed
+        
         # Interleave items quantity and line total back together
         items_matrix_scaled = np.empty(48)
         items_matrix_scaled[::2] = items_qty_scaled
@@ -248,7 +319,8 @@ def extract_features_from_scenario(
             duration_matrix_scaled,
             user_vector_scaled,
             items_matrix_scaled,
-            supplier_vector_scaled
+            supplier_vector_scaled,
+            outcome_features_scaled  # NEW: Add outcome features
         ])
     else:
         # No scaling - just concatenate raw features
@@ -257,7 +329,8 @@ def extract_features_from_scenario(
             duration_matrix,
             user_vector,
             items_matrix,
-            supplier_vector
+            supplier_vector,
+            outcome_features  # NEW: Add outcome features
         ])
     
     assert feature_vector.shape[0] == TOTAL_FEATURE_DIM, \
