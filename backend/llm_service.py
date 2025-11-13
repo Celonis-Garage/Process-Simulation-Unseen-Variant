@@ -139,6 +139,96 @@ class GroqLLMService:
             logger.error(f"Error calling Groq API: {e}")
             return self._fallback_action(user_prompt, f"Error processing request: {str(e)}")
     
+    def generate_event_narration(self, event_data: Dict[str, Any]) -> str:
+        """
+        Generate natural language narration for a simulation event.
+        
+        Args:
+            event_data: Dictionary containing event details (event_name, timestamp, case_id, 
+                       order_value, order_status, users, items, suppliers, etc.)
+        
+        Returns:
+            Natural language narration string
+        """
+        try:
+            # Extract item names from items list (only if relevant to this event)
+            item_names = [item.get('name', 'Item') for item in event_data.get('items', [])]
+            items_str = ', '.join(item_names) if item_names else None  # Show all items
+            
+            # Extract supplier names (only if relevant to this event)
+            suppliers = event_data.get('suppliers', [])
+            suppliers_str = ', '.join(suppliers) if suppliers else None  # Show all suppliers
+            
+            # Get the specific user for this event
+            user = event_data.get('user', 'System')
+            
+            # Build ACTION-FOCUSED prompt - only show what's relevant to THIS specific event
+            narration_prompt = f"""Generate 2-3 CRISP bullets focused on the ACTION happening RIGHT NOW. Only mention attributes DIRECTLY involved in this step.
+
+Event: {event_data.get('event_name', 'Unknown Event')}
+User: {user}"""
+
+            # Add items ONLY if they exist and are relevant
+            if items_str:
+                narration_prompt += f"\nItems: {items_str}"
+            
+            # Add suppliers ONLY if they exist and are relevant
+            if suppliers_str:
+                narration_prompt += f"\nSuppliers: {suppliers_str}"
+
+            narration_prompt += f"""
+
+FOCUS ON: What action is being performed RIGHT NOW? What specific data is being processed?
+
+FORMAT (2-3 bullets, action-focused):
+• Action: [verb phrase describing what's happening]
+• By: [user name only]
+• Data: [only IF relevant to this specific action]
+
+EXAMPLES:
+For "Validate Customer Order":
+• Action: Validating order accuracy
+• By: Bob Smith
+
+For "Pack Items":
+• Action: Packing items for shipment
+• By: Diana Lopez
+• Items: Laptop, Mouse
+
+For "Approve Order":
+• Action: Performing credit approval
+• By: Charlie Davis
+
+YOUR OUTPUT (2-3 bullets, action-focused, NO extra words):"""
+
+            # Call Groq API
+            response = self.client.chat.completions.create(
+                model="llama-3.1-8b-instant",  # Use faster model for real-time narration
+                messages=[
+                    {"role": "system", "content": "Output ONLY crisp bullet points focused on the CURRENT ACTION. Max 3 bullets. Show only attributes directly involved in THIS step."},
+                    {"role": "user", "content": narration_prompt}
+                ],
+                temperature=0.2,  # Very low for consistency
+                max_tokens=60  # Even more concise
+            )
+            
+            narration = response.choices[0].message.content.strip()
+            
+            # Remove quotes if LLM wrapped the text
+            if narration.startswith('"') and narration.endswith('"'):
+                narration = narration[1:-1]
+            
+            logger.info(f"Generated narration for {event_data.get('event_name')}: {narration[:50]}...")
+            return narration
+            
+        except Exception as e:
+            logger.error(f"Error generating narration: {e}")
+            # Fallback narration in bullet format (action-focused)
+            event_name = event_data.get('event_name', 'Unknown Event')
+            user = event_data.get('user', 'System')
+            
+            return f"• Action: {event_name}\n• By: {user}"
+    
     def _to_legacy_format(self, action: ProcessAction, current_process: Dict[str, Any]) -> Dict[str, Any]:
         """
         Convert ProcessAction to format expected by existing frontend/backend.

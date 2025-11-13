@@ -1,0 +1,335 @@
+{
+  "case_id": "order_1654",
+  "order_info": {
+    "order_value": 1839.92,
+    "order_status": "Rejected",
+    "num_items": 2,
+    "total_quantity": 8
+  },
+  "kpis": {
+    "on_time_delivery": 17.09,
+    "days_sales_outstanding": 85.19,
+    "order_accuracy": 37.51,
+    "invoice_accuracy": 1.89,
+    "avg_cost_delivery": 53.01
+  },
+  "entities": {
+    "users": [
+      "U001",
+      "U002"
+    ],
+    "items": [
+      {
+        "id": "I006",
+        "name": "Wireless Mouse",
+        "quantity": 3,
+        "line_total": 89.97
+      },
+      {
+        "id": "I012",
+        "name": "Desk (Standing)",
+        "quantity": 5,
+        "line_total": 1749.95
+      }
+    ],
+    "suppliers": [
+      "S002",
+      "S015"
+    ]
+  },
+  "animation": {
+    "duration": 300.0,
+    "keyframes": [
+      {
+        "time": 0.0,
+        "position": [
+          -36,
+          0,
+          0
+        ],
+        "event": "Receive Customer Order",
+        "label": "Receive Order",
+        "timestamp": "2064-04-14T14:39:15.348555",
+        "user": "U001"
+      },
+      {
+        "time": 60.0,
+        "position": [
+          -28,
+          0,
+          0
+        ],
+        "event": "Validate Customer Order",
+        "label": "Validate",
+        "timestamp": "2064-04-14T14:40:15.348555",
+        "user": "U002"
+      },
+      {
+        "time": 120.0,
+        "position": [
+          -20,
+          0,
+          0
+        ],
+        "event": "Perform Credit Check",
+        "label": "Credit Check",
+        "timestamp": "2064-04-14T14:41:15.348555",
+        "user": "U001"
+      },
+      {
+        "time": 180.0,
+        "position": [
+          -20,
+          0,
+          -6
+        ],
+        "event": "Reject Order",
+        "label": "Reject",
+        "timestamp": "2064-04-14T14:42:15.348555",
+        "user": "U002"
+      },
+      {
+        "time": 240.0,
+        "position": [
+          28,
+          0,
+          6
+        ],
+        "event": "Process Return Request",
+        "label": "Returns",
+        "timestamp": "2064-05-04T14:43:15.348555",
+        "user": "U001"
+      },
+      {
+        "time": 300.0,
+        "position": [
+          -4,
+          0,
+          6
+        ],
+        "event": "Apply Discount",
+        "label": "Discount",
+        "timestamp": "2064-05-04T14:46:15.348555",
+        "user": "U002"
+      }
+    ]
+  },
+  "locations": [
+    {
+      "name": "Receive Customer Order",
+      "label": "Receive Order",
+      "type": "main",
+      "position": [
+        -36,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Validate Customer Order",
+      "label": "Validate",
+      "type": "main",
+      "position": [
+        -28,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Perform Credit Check",
+      "label": "Credit Check",
+      "type": "main",
+      "position": [
+        -20,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Reject Order",
+      "label": "Reject",
+      "type": "deviation",
+      "position": [
+        -20,
+        0,
+        -6
+      ]
+    },
+    {
+      "name": "Process Return Request",
+      "label": "Returns",
+      "type": "deviation",
+      "position": [
+        28,
+        0,
+        6
+      ]
+    },
+    {
+      "name": "Apply Discount",
+      "label": "Discount",
+      "type": "deviation",
+      "position": [
+        -4,
+        0,
+        6
+      ]
+    }
+  ],
+  "item_paths": [
+    {
+      "item_id": "I006",
+      "name": "Wireless Mouse",
+      "quantity": 3,
+      "category": "Others",
+      "supplier_id": "S001",
+      "supplier_name": "S001",
+      "color": "#6b7280",
+      "keyframes": [
+        {
+          "time": 0.0,
+          "position": [
+            -18,
+            0,
+            0
+          ],
+          "label": "At S001 (Order will be rejected - no procurement)",
+          "status": "waiting",
+          "event_trigger": null
+        },
+        {
+          "time": 180.0,
+          "position": [
+            -18,
+            0,
+            0
+          ],
+          "label": "At S001 (Order Rejected - Not Shipped)",
+          "status": "waiting",
+          "event_trigger": "Reject Order"
+        },
+        {
+          "time": 220.0,
+          "position": [
+            -18,
+            0,
+            0
+          ],
+          "label": "Order Rejected - Items Not Procured",
+          "status": "waiting",
+          "event_trigger": "Reject Order"
+        },
+        {
+          "time": 175.0,
+          "position": [
+            -18,
+            0,
+            0
+          ],
+          "label": "Order Rejected - Items Remain at Supplier",
+          "status": "waiting",
+          "event_trigger": null
+        },
+        {
+          "time": 180.0,
+          "position": [
+            -18,
+            0,
+            0
+          ],
+          "label": "Order Rejected - Items Remain at Supplier",
+          "status": "waiting",
+          "event_trigger": "Reject Order"
+        }
+      ]
+    },
+    {
+      "item_id": "I012",
+      "name": "Desk (Standing)",
+      "quantity": 5,
+      "category": "Others",
+      "supplier_id": "S001",
+      "supplier_name": "S001",
+      "color": "#6b7280",
+      "keyframes": [
+        {
+          "time": 0.0,
+          "position": [
+            -18,
+            0,
+            0
+          ],
+          "label": "At S001 (Order will be rejected - no procurement)",
+          "status": "waiting",
+          "event_trigger": null
+        },
+        {
+          "time": 190.0,
+          "position": [
+            -18,
+            0,
+            0
+          ],
+          "label": "At S001 (Order Rejected - Not Shipped)",
+          "status": "waiting",
+          "event_trigger": "Reject Order"
+        },
+        {
+          "time": 230.0,
+          "position": [
+            -18,
+            0,
+            0
+          ],
+          "label": "Order Rejected - Items Not Procured",
+          "status": "waiting",
+          "event_trigger": "Reject Order"
+        },
+        {
+          "time": 175.0,
+          "position": [
+            -18,
+            0,
+            0
+          ],
+          "label": "Order Rejected - Items Remain at Supplier",
+          "status": "waiting",
+          "event_trigger": null
+        },
+        {
+          "time": 180.0,
+          "position": [
+            -18,
+            0,
+            0
+          ],
+          "label": "Order Rejected - Items Remain at Supplier",
+          "status": "waiting",
+          "event_trigger": "Reject Order"
+        }
+      ]
+    }
+  ],
+  "supplier_locations": [
+    {
+      "supplier_id": "S015",
+      "label": "Industrial",
+      "country": "USA",
+      "position": [
+        -32.0,
+        0,
+        10
+      ]
+    },
+    {
+      "supplier_id": "S002",
+      "label": "TechSource",
+      "country": "USA",
+      "position": [
+        -32.0,
+        0,
+        -10
+      ]
+    }
+  ]
+}

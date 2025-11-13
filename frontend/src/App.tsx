@@ -135,19 +135,7 @@ const generateEventLogsFromSteps = (steps: ProcessStep[]): EventLog[] => {
     }
   });
   
-  // Add one log for Case C002 (first step only)
-  if (processSteps.length > 0) {
-    const baseDate2 = new Date('2025-10-16 10:00');
-    logs.push({
-      caseId: 'C002',
-      activity: processSteps[0].name,
-      timestamp: baseDate2.toISOString().slice(0, 16).replace('T', ' '),
-      throughputTime: processSteps[0].avgTime,
-      cost: processSteps[0].avgCost,
-      resource: getResourceForStep(processSteps[0].name)
-    });
-  }
-  
+  // Only return C001 - single case for consistency with backend
   return logs;
 };
 
@@ -354,6 +342,10 @@ export default function App() {
       return;
     }
 
+    // Capture historyIndex at the start before any async operations
+    const capturedHistoryIndex = historyIndex;
+    console.log('🎯 handleAddStep starting with historyIndex:', capturedHistoryIndex);
+
     const afterIndex = steps.findIndex(s => s.id === afterStepId);
     const nextStep = steps[afterIndex + 1];
     
@@ -413,7 +405,8 @@ export default function App() {
           // Save to history with the NEW event logs
           setTimeout(() => {
             if (!isUndoRedoAction.current) {
-              // Capture state with new event logs
+              // Use captured historyIndex from handleAddStep start
+              let newLength = 0;
               setHistory(prev => {
                 const newState = {
                   steps: JSON.parse(JSON.stringify(newSteps)),
@@ -421,12 +414,18 @@ export default function App() {
                   eventLogs: JSON.parse(JSON.stringify(transformedLogs)),
                   variantName: 'Modified Variant'
                 };
-                const newHistory = prev.slice(0, historyIndex + 1);
+                // Use captured historyIndex to truncate future history if needed
+                const newHistory = prev.slice(0, capturedHistoryIndex + 1);
                 newHistory.push(newState);
-                console.log('✅ Saved to history after add, new historyIndex:', newHistory.length - 1);
+                newLength = newHistory.length;
+                console.log('✅ Saved to history after add, prev length:', prev.length, 'captured historyIndex:', capturedHistoryIndex, 'new length:', newLength);
                 return newHistory.length > 10 ? newHistory.slice(1) : newHistory;
               });
-              setHistoryIndex(prev => Math.min(prev + 1, 9));
+              setHistoryIndex(prev => {
+                const newIndex = newLength > 10 ? 9 : newLength - 1;
+                console.log('✅ Updated historyIndex after add from', prev, 'to', newIndex);
+                return newIndex;
+              });
             }
           }, 100);
         } else {
@@ -436,6 +435,7 @@ export default function App() {
           // Save with fallback logs
           setTimeout(() => {
             if (!isUndoRedoAction.current) {
+              let newLength = 0;
               setHistory(prev => {
                 const newState = {
                   steps: JSON.parse(JSON.stringify(newSteps)),
@@ -443,12 +443,17 @@ export default function App() {
                   eventLogs: JSON.parse(JSON.stringify(fallbackLogs)),
                   variantName: 'Modified Variant'
                 };
-                const newHistory = prev.slice(0, historyIndex + 1);
+                const newHistory = prev.slice(0, capturedHistoryIndex + 1);
                 newHistory.push(newState);
-                console.log('✅ Saved to history after add (fallback), new historyIndex:', newHistory.length - 1);
+                newLength = newHistory.length;
+                console.log('✅ Saved to history after add (fallback), prev length:', prev.length, 'captured historyIndex:', capturedHistoryIndex, 'new length:', newLength);
                 return newHistory.length > 10 ? newHistory.slice(1) : newHistory;
               });
-              setHistoryIndex(prev => Math.min(prev + 1, 9));
+              setHistoryIndex(prev => {
+                const newIndex = newLength > 10 ? 9 : newLength - 1;
+                console.log('✅ Updated historyIndex after add (fallback) from', prev, 'to', newIndex);
+                return newIndex;
+              });
             }
           }, 100);
         }
@@ -460,6 +465,7 @@ export default function App() {
         // Save even if error occurs
         setTimeout(() => {
           if (!isUndoRedoAction.current) {
+            let newLength = 0;
             setHistory(prev => {
               const newState = {
                 steps: JSON.parse(JSON.stringify(newSteps)),
@@ -467,12 +473,17 @@ export default function App() {
                 eventLogs: JSON.parse(JSON.stringify(fallbackLogs)),
                 variantName: 'Modified Variant'
               };
-              const newHistory = prev.slice(0, historyIndex + 1);
+              const newHistory = prev.slice(0, capturedHistoryIndex + 1);
               newHistory.push(newState);
-              console.log('✅ Saved to history after add (error), new historyIndex:', newHistory.length - 1);
+              newLength = newHistory.length;
+              console.log('✅ Saved to history after add (error), prev length:', prev.length, 'captured historyIndex:', capturedHistoryIndex, 'new length:', newLength);
               return newHistory.length > 10 ? newHistory.slice(1) : newHistory;
             });
-            setHistoryIndex(prev => Math.min(prev + 1, 9));
+            setHistoryIndex(prev => {
+              const newIndex = newLength > 10 ? 9 : newLength - 1;
+              console.log('✅ Updated historyIndex after add (error) from', prev, 'to', newIndex);
+              return newIndex;
+            });
           }
         }, 100);
       }
@@ -614,15 +625,22 @@ export default function App() {
   };
 
   const handleUpdateStep = (stepId: string, updates: Partial<ProcessStep>) => {
+    // Capture historyIndex at the start before any async operations
+    const capturedHistoryIndex = historyIndex;
+    console.log('🎯 handleUpdateStep starting with historyIndex:', capturedHistoryIndex);
+
     const step = steps.find(s => s.id === stepId);
     const newSteps = steps.map(s => 
       s.id === stepId ? { ...s, ...updates } : s
     );
     setSteps(newSteps);
     
-    // Track change if time was updated
-    if (updates.avgTime && step) {
-      setProcessChanges([`Reduced '${step.name}' time from ${step.avgTime} to ${updates.avgTime}`]);
+    // Track change if time or cost was updated
+    if ((updates.avgTime || updates.avgCost) && step) {
+      const changes = [];
+      if (updates.avgTime) changes.push(`time from ${step.avgTime} to ${updates.avgTime}`);
+      if (updates.avgCost) changes.push(`cost from ${step.avgCost} to ${updates.avgCost}`);
+      setProcessChanges([`Updated '${step.name}': ${changes.join(', ')}`]);
     }
     
     // Fetch fresh event logs from backend WITH UPDATED KPIs
@@ -651,12 +669,89 @@ export default function App() {
             resource: getResourceForStep(log.Activity || log.activity || 'System')
           }));
           setEventLogs(transformedLogs);
+
+          // Save to history after successful update
+          setTimeout(() => {
+            if (!isUndoRedoAction.current) {
+              let newLength = 0;
+              setHistory(prev => {
+                const newState = {
+                  steps: JSON.parse(JSON.stringify(newSteps)),
+                  edges: JSON.parse(JSON.stringify(edges)),
+                  eventLogs: JSON.parse(JSON.stringify(transformedLogs)),
+                  variantName: 'Modified Variant'
+                };
+                const newHistory = prev.slice(0, capturedHistoryIndex + 1);
+                newHistory.push(newState);
+                newLength = newHistory.length;
+                console.log('✅ Saved to history after update, prev length:', prev.length, 'captured historyIndex:', capturedHistoryIndex, 'new length:', newLength);
+                return newHistory.length > 10 ? newHistory.slice(1) : newHistory;
+              });
+              setHistoryIndex(prev => {
+                const newIndex = newLength > 10 ? 9 : newLength - 1;
+                console.log('✅ Updated historyIndex after update from', prev, 'to', newIndex);
+                return newIndex;
+              });
+            }
+          }, 100);
         } else {
-          setEventLogs(generateEventLogsFromSteps(newSteps));
+          const fallbackLogs = generateEventLogsFromSteps(newSteps);
+          setEventLogs(fallbackLogs);
+
+          // Save to history with fallback logs
+          setTimeout(() => {
+            if (!isUndoRedoAction.current) {
+              let newLength = 0;
+              setHistory(prev => {
+                const newState = {
+                  steps: JSON.parse(JSON.stringify(newSteps)),
+                  edges: JSON.parse(JSON.stringify(edges)),
+                  eventLogs: JSON.parse(JSON.stringify(fallbackLogs)),
+                  variantName: 'Modified Variant'
+                };
+                const newHistory = prev.slice(0, capturedHistoryIndex + 1);
+                newHistory.push(newState);
+                newLength = newHistory.length;
+                console.log('✅ Saved to history after update (fallback), prev length:', prev.length, 'captured historyIndex:', capturedHistoryIndex, 'new length:', newLength);
+                return newHistory.length > 10 ? newHistory.slice(1) : newHistory;
+              });
+              setHistoryIndex(prev => {
+                const newIndex = newLength > 10 ? 9 : newLength - 1;
+                console.log('✅ Updated historyIndex after update (fallback) from', prev, 'to', newIndex);
+                return newIndex;
+              });
+            }
+          }, 100);
         }
       } catch (error) {
         console.error('Error fetching event logs:', error);
-        setEventLogs(generateEventLogsFromSteps(newSteps));
+        const fallbackLogs = generateEventLogsFromSteps(newSteps);
+        setEventLogs(fallbackLogs);
+
+        // Save to history even on error
+        setTimeout(() => {
+          if (!isUndoRedoAction.current) {
+            let newLength = 0;
+            setHistory(prev => {
+              const newState = {
+                steps: JSON.parse(JSON.stringify(newSteps)),
+                edges: JSON.parse(JSON.stringify(edges)),
+                eventLogs: JSON.parse(JSON.stringify(fallbackLogs)),
+                variantName: 'Modified Variant'
+              };
+              const newHistory = prev.slice(0, capturedHistoryIndex + 1);
+              newHistory.push(newState);
+              newLength = newHistory.length;
+              console.log('✅ Saved to history after update (error), prev length:', prev.length, 'captured historyIndex:', capturedHistoryIndex, 'new length:', newLength);
+              return newHistory.length > 10 ? newHistory.slice(1) : newHistory;
+            });
+            setHistoryIndex(prev => {
+              const newIndex = newLength > 10 ? 9 : newLength - 1;
+              console.log('✅ Updated historyIndex after update (error) from', prev, 'to', newIndex);
+              return newIndex;
+            });
+          }
+        }, 100);
       }
     })();
   };
@@ -896,6 +991,10 @@ export default function App() {
       // 🎯 NEW: Handle select_variant action (initial process selection)
       if (response.action === 'select_variant') {
         console.log('✨ Variant selection:', response.variant_id);
+        // Capture historyIndex before any state changes
+        const capturedHistoryIndex = historyIndex;
+        console.log('🎯 select_variant starting with historyIndex:', capturedHistoryIndex);
+        
         const activities = response.activities || [];
         const kpis = response.kpis || {};  // Get real KPIs from backend
         
@@ -962,11 +1061,28 @@ export default function App() {
           text: `✅ ${response.explanation || 'Process loaded successfully'}${suggestedPromptsText}`
         }]);
         
-        // Save to history after variant loads
+        // Save to history after variant loads - use inline saving with local values to avoid stale closure
         setTimeout(() => {
           if (!isUndoRedoAction.current) {
-            saveToHistory();
-            console.log('✅ Saved to history after variant selection, historyIndex should be 0');
+            let newLength = 0;
+            setHistory(prev => {
+              const newState = {
+                steps: JSON.parse(JSON.stringify(newSteps)),
+                edges: JSON.parse(JSON.stringify(newEdges)),
+                eventLogs: JSON.parse(JSON.stringify(logs)),
+                variantName: response.variant_id || 'Selected Variant'
+              };
+              const newHistory = prev.slice(0, capturedHistoryIndex + 1);
+              newHistory.push(newState);
+              newLength = newHistory.length;
+              console.log('✅ Saved initial variant to history, prev length:', prev.length, 'captured historyIndex:', capturedHistoryIndex, 'new length:', newLength);
+              return newHistory.length > 10 ? newHistory.slice(1) : newHistory;
+            });
+            setHistoryIndex(prev => {
+              const newIndex = newLength > 10 ? 9 : newLength - 1;
+              console.log('✅ Updated historyIndex from', prev, 'to', newIndex);
+              return newIndex;
+            });
           }
         }, 100);
         

@@ -1,0 +1,9 @@
+variant_id,sample_order_id,variant_name,frequency_percentage
+variant_1,order_1,Receive Customer Order → Validate Customer Order → Perform Credit Check...,67.35
+variant_2,order_101,Receive Customer Order → Validate Customer Order → Perform Credit Check...,18.25
+variant_3,order_102,Receive Customer Order → Validate Customer Order → Perform Credit Check...,7.55
+variant_4,order_1042,Receive Customer Order → Validate Customer Order → Perform Credit Check...,4.2
+variant_5,order_1073,Receive Customer Order → Validate Customer Order → Perform Credit Check...,1.7
+variant_6,order_1092,Receive Customer Order → Validate Customer Order → Perform Credit Check...,0.65
+variant_7,order_1202,Receive Customer Order → Validate Customer Order → Perform Credit Check...,0.2
+variant_8,order_1654,Receive Customer Order → Validate Customer Order → Perform Credit Check...,0.1

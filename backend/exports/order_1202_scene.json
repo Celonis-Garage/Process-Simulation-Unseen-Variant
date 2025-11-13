@@ -1,0 +1,231 @@
+{
+  "case_id": "order_1202",
+  "order_info": {
+    "order_value": 19.99,
+    "order_status": "Rejected",
+    "num_items": 1,
+    "total_quantity": 1
+  },
+  "kpis": {
+    "on_time_delivery": 14.69,
+    "days_sales_outstanding": 85.85,
+    "order_accuracy": 10.81,
+    "invoice_accuracy": 1.74,
+    "avg_cost_delivery": 37.4
+  },
+  "entities": {
+    "users": [
+      "U001",
+      "U002",
+      "U007"
+    ],
+    "items": [
+      {
+        "id": "I016",
+        "name": "Phone Stand",
+        "quantity": 1,
+        "line_total": 19.99
+      }
+    ],
+    "suppliers": [
+      "S013"
+    ]
+  },
+  "animation": {
+    "duration": 240.0,
+    "keyframes": [
+      {
+        "time": 0.0,
+        "position": [
+          -36,
+          0,
+          0
+        ],
+        "event": "Receive Customer Order",
+        "label": "Receive Order",
+        "timestamp": "2053-02-03T03:59:15.348555",
+        "user": "U001"
+      },
+      {
+        "time": 60.0,
+        "position": [
+          -28,
+          0,
+          0
+        ],
+        "event": "Validate Customer Order",
+        "label": "Validate",
+        "timestamp": "2053-02-03T04:00:15.348555",
+        "user": "U002"
+      },
+      {
+        "time": 120.0,
+        "position": [
+          -20,
+          0,
+          0
+        ],
+        "event": "Perform Credit Check",
+        "label": "Credit Check",
+        "timestamp": "2053-02-03T04:01:15.348555",
+        "user": "U007"
+      },
+      {
+        "time": 180.0,
+        "position": [
+          -20,
+          0,
+          -6
+        ],
+        "event": "Reject Order",
+        "label": "Reject",
+        "timestamp": "2053-02-03T04:02:15.348555",
+        "user": "U001"
+      },
+      {
+        "time": 240.0,
+        "position": [
+          28,
+          0,
+          6
+        ],
+        "event": "Process Return Request",
+        "label": "Returns",
+        "timestamp": "2053-02-23T04:03:15.348555",
+        "user": "U002"
+      }
+    ]
+  },
+  "locations": [
+    {
+      "name": "Receive Customer Order",
+      "label": "Receive Order",
+      "type": "main",
+      "position": [
+        -36,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Validate Customer Order",
+      "label": "Validate",
+      "type": "main",
+      "position": [
+        -28,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Perform Credit Check",
+      "label": "Credit Check",
+      "type": "main",
+      "position": [
+        -20,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Reject Order",
+      "label": "Reject",
+      "type": "deviation",
+      "position": [
+        -20,
+        0,
+        -6
+      ]
+    },
+    {
+      "name": "Process Return Request",
+      "label": "Returns",
+      "type": "deviation",
+      "position": [
+        28,
+        0,
+        6
+      ]
+    }
+  ],
+  "item_paths": [
+    {
+      "item_id": "I016",
+      "name": "Phone Stand",
+      "quantity": 1,
+      "category": "Others",
+      "supplier_id": "S001",
+      "supplier_name": "S001",
+      "color": "#6b7280",
+      "keyframes": [
+        {
+          "time": 0.0,
+          "position": [
+            -18,
+            0,
+            0
+          ],
+          "label": "At S001 (Order will be rejected - no procurement)",
+          "status": "waiting",
+          "event_trigger": null
+        },
+        {
+          "time": 180.0,
+          "position": [
+            -18,
+            0,
+            0
+          ],
+          "label": "At S001 (Order Rejected - Not Shipped)",
+          "status": "waiting",
+          "event_trigger": "Reject Order"
+        },
+        {
+          "time": 220.0,
+          "position": [
+            -18,
+            0,
+            0
+          ],
+          "label": "Order Rejected - Items Not Procured",
+          "status": "waiting",
+          "event_trigger": "Reject Order"
+        },
+        {
+          "time": 175.0,
+          "position": [
+            -18,
+            0,
+            0
+          ],
+          "label": "Order Rejected - Items Remain at Supplier",
+          "status": "waiting",
+          "event_trigger": null
+        },
+        {
+          "time": 180.0,
+          "position": [
+            -18,
+            0,
+            0
+          ],
+          "label": "Order Rejected - Items Remain at Supplier",
+          "status": "waiting",
+          "event_trigger": "Reject Order"
+        }
+      ]
+    }
+  ],
+  "supplier_locations": [
+    {
+      "supplier_id": "S013",
+      "label": "Premium",
+      "country": "USA",
+      "position": [
+        -32.0,
+        0,
+        10
+      ]
+    }
+  ]
+}

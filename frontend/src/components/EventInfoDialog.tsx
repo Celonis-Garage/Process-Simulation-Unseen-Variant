@@ -1,5 +1,5 @@
-import React from 'react';
-import { X, Clock, DollarSign, Info, Trash2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Clock, DollarSign, Info, Trash2, Check } from 'lucide-react';
 import { ProcessStep } from '../App';
 
 interface EventInfoDialogProps {
@@ -7,6 +7,7 @@ interface EventInfoDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onRemove: () => void;
+  onUpdate: (stepId: string, updates: Partial<ProcessStep>) => void;
 }
 
 const eventDescriptions: { [key: string]: string } = {
@@ -25,10 +26,43 @@ const eventDescriptions: { [key: string]: string } = {
   'document-verification': 'Validation of required documentation such as contracts, purchase orders, or shipping documents.'
 };
 
-export function EventInfoDialog({ step, isOpen, onClose, onRemove }: EventInfoDialogProps) {
+export function EventInfoDialog({ step, isOpen, onClose, onRemove, onUpdate }: EventInfoDialogProps) {
+  const [editedTime, setEditedTime] = useState(step.avgTime);
+  const [editedCost, setEditedCost] = useState(step.avgCost);
+  const [hasChanges, setHasChanges] = useState(false);
+
+  // Reset edited values when step changes
+  useEffect(() => {
+    setEditedTime(step.avgTime);
+    setEditedCost(step.avgCost);
+    setHasChanges(false);
+  }, [step.id, step.avgTime, step.avgCost]);
+
   if (!isOpen) return null;
 
   const description = eventDescriptions[step.id] || 'This process step is part of your order-to-cash workflow. It contributes to the overall process efficiency and helps track case progression.';
+
+  const handleTimeChange = (value: string) => {
+    setEditedTime(value);
+    setHasChanges(true);
+  };
+
+  const handleCostChange = (value: string) => {
+    setEditedCost(value);
+    setHasChanges(true);
+  };
+
+  const handleConfirm = () => {
+    // Validate and update
+    if (editedTime && editedCost) {
+      onUpdate(step.id, {
+        avgTime: editedTime,
+        avgCost: editedCost
+      });
+      setHasChanges(false);
+      onClose();
+    }
+  };
 
   return (
     <div 
@@ -68,21 +102,37 @@ export function EventInfoDialog({ step, isOpen, onClose, onRemove }: EventInfoDi
             </p>
           </div>
 
-          {/* Metrics */}
+          {/* Metrics - Editable */}
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <div className="flex items-center gap-2 mb-2">
                 <Clock className="w-4 h-4 text-blue-600" />
                 <span className="text-sm text-gray-700">Avg Duration</span>
               </div>
-              <p className="text-blue-700">{step.avgTime}</p>
+              <input
+                type="text"
+                value={editedTime}
+                onChange={(e) => handleTimeChange(e.target.value)}
+                placeholder="e.g., 2h or 30m"
+                className="w-full px-2 py-1 text-blue-700 bg-white border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={step.id === 'start' || step.id === 'end'}
+              />
+              <p className="text-xs text-gray-500 mt-1">Format: Xh, Xm, or Xd</p>
             </div>
             <div className="bg-green-50 border border-green-200 rounded-lg p-4">
               <div className="flex items-center gap-2 mb-2">
                 <DollarSign className="w-4 h-4 text-green-600" />
                 <span className="text-sm text-gray-700">Avg Cost</span>
               </div>
-              <p className="text-green-700">{step.avgCost}</p>
+              <input
+                type="text"
+                value={editedCost}
+                onChange={(e) => handleCostChange(e.target.value)}
+                placeholder="e.g., $50 or $100.50"
+                className="w-full px-2 py-1 text-green-700 bg-white border border-green-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
+                disabled={step.id === 'start' || step.id === 'end'}
+              />
+              <p className="text-xs text-gray-500 mt-1">Format: $XX.XX</p>
             </div>
           </div>
         </div>
@@ -97,12 +147,22 @@ export function EventInfoDialog({ step, isOpen, onClose, onRemove }: EventInfoDi
             <Trash2 className="w-4 h-4" />
             Remove Step
           </button>
-          <button
-            onClick={onClose}
-            className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors"
-          >
-            Close
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={handleConfirm}
+              disabled={!hasChanges || step.id === 'start' || step.id === 'end'}
+              className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed rounded-lg transition-colors flex items-center gap-2"
+            >
+              <Check className="w-4 h-4" />
+              Confirm
+            </button>
+            <button
+              onClick={onClose}
+              className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors"
+            >
+              Close
+            </button>
+          </div>
         </div>
       </div>
     </div>

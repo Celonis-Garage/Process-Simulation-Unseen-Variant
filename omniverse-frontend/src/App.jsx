@@ -13,7 +13,8 @@ function App() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1); // 1x normal speed
   const [availableOrders, setAvailableOrders] = useState([]);
-  const [selectedOrder, setSelectedOrder] = useState('order_43');
+  const [selectedOrder, setSelectedOrder] = useState('order_1'); // Default to variant_1 sample
+  const [selectedOrderInfo, setSelectedOrderInfo] = useState(null);
 
   useEffect(() => {
     fetchAvailableOrders();
@@ -34,7 +35,14 @@ function App() {
       }
       
       const data = await response.json();
-      setAvailableOrders(data.orders || []);
+      const orders = data.orders || [];
+      setAvailableOrders(orders);
+      
+      // Set info for the default selected order
+      if (orders.length > 0) {
+        const defaultOrder = orders.find(o => o.case_id === selectedOrder) || orders[0];
+        setSelectedOrderInfo(defaultOrder);
+      }
     } catch (err) {
       console.error('Error fetching available orders:', err);
       // Don't show error for order list failure, just use default
@@ -128,16 +136,21 @@ function App() {
         <div className="header-top">
           <h1>🎬 O2C Process - 3D Visualization</h1>
           <div className="order-selector">
-            <label htmlFor="order-select">Select Order:</label>
+            <label htmlFor="order-select">Select Variant:</label>
             <select 
               id="order-select"
               value={selectedOrder} 
-              onChange={(e) => setSelectedOrder(e.target.value)}
+              onChange={(e) => {
+                const caseId = e.target.value;
+                setSelectedOrder(caseId);
+                const orderInfo = availableOrders.find(o => o.case_id === caseId);
+                setSelectedOrderInfo(orderInfo);
+              }}
               className="order-dropdown"
             >
               {availableOrders.map((order) => (
                 <option key={order.case_id} value={order.case_id}>
-                  {order.case_id} ({order.item_count} items, {order.event_count} events)
+                  {order.variant_id}: {order.case_id} ({order.frequency_percentage.toFixed(1)}% of orders, {order.event_count} events)
                 </option>
               ))}
             </select>
@@ -145,6 +158,11 @@ function App() {
         </div>
         <div className="header-info">
           <span className="case-id">Case: {sceneData?.case_id || 'N/A'}</span>
+          {selectedOrderInfo && (
+            <span className="variant-info" style={{ color: '#3b82f6', fontWeight: 'bold' }}>
+              Variant: {selectedOrderInfo.variant_id} ({selectedOrderInfo.frequency_percentage.toFixed(1)}% frequency)
+            </span>
+          )}
           <span className="order-value">
             Order Value: ${sceneData?.order_info?.order_value?.toFixed(2) || '0.00'}
           </span>
@@ -152,6 +170,18 @@ function App() {
             Status: {sceneData?.order_info?.order_status || 'Unknown'}
           </span>
         </div>
+        {selectedOrderInfo && selectedOrderInfo.variant_description && (
+          <div className="variant-description" style={{ 
+            padding: '8px 16px', 
+            background: 'rgba(59, 130, 246, 0.1)', 
+            borderRadius: '4px',
+            fontSize: '0.9em',
+            color: '#1f2937',
+            marginTop: '8px'
+          }}>
+            <strong>Variant Context:</strong> {selectedOrderInfo.variant_description}
+          </div>
+        )}
       </header>
 
       <div className="main-content">
@@ -251,7 +281,7 @@ function App() {
       </div>
 
       <Timeline
-        duration={60}
+        duration={90}
         currentTime={currentTime}
         isPlaying={isPlaying}
         playbackSpeed={playbackSpeed}
@@ -260,6 +290,7 @@ function App() {
         onReset={handleReset}
         onSpeedChange={handleSpeedChange}
         keyframes={sceneData?.animation?.keyframes || []}
+        sceneData={sceneData}
       />
     </div>
   );

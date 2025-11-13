@@ -622,6 +622,10 @@ export function ProcessExplorer({ steps, edges, onAddStep, onRemoveStep, onReord
               onRemoveStep(infoStep.id);
               setInfoStep(null);
             }}
+            onUpdate={(stepId, updates) => {
+              onUpdateStep(stepId, updates);
+              setInfoStep(null);
+            }}
           />
         )}
 

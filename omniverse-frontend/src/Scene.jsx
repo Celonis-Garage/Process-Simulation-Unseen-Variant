@@ -1,5 +1,5 @@
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Text, Sphere, Box, Line } from '@react-three/drei';
+import { OrbitControls, Text, Sphere, Box, Cylinder, Cone, Line } from '@react-three/drei';
 import { useRef, useEffect, useState } from 'react';
 import * as THREE from 'three';
 
@@ -110,102 +110,286 @@ function Location({ position, label, isActive, type }) {
         color={baseColor} 
         emissive={emissiveColor}
         emissiveIntensity={isActive ? 0.5 : 0.2}
-        metalness={0.4}
-        roughness={0.5}
+        metalness={0.5}
+        roughness={0.3}
+      />
+    );
+    
+    const darkMaterial = (
+      <meshStandardMaterial 
+        color="#333333"
+        metalness={0.6}
+        roughness={0.4}
+      />
+    );
+    
+    const glassMaterial = (
+      <meshStandardMaterial 
+        color="#87CEEB"
+        transparent
+        opacity={0.3}
+        metalness={0.9}
+        roughness={0.1}
       />
     );
     
     switch(stationType) {
       case 'reception':
-        // Reception desk - flat box with a counter (3x scale)
+        // Modern reception desk with counter and computer
         return (
           <>
-            <Box args={[3.0, 0.9, 1.8]} position={[0, 0.45, 0]}>{material}</Box>
-            <Box args={[2.4, 0.45, 1.5]} position={[0, 1.14, 0]}>{material}</Box>
+            {/* Main desk body */}
+            <Box args={[3.0, 0.8, 1.8]} position={[0, 0.4, 0]}>{material}</Box>
+            {/* Counter top */}
+            <Box args={[3.2, 0.1, 2.0]} position={[0, 0.85, 0]}>
+              <meshStandardMaterial color="#555555" metalness={0.7} roughness={0.2} />
+            </Box>
+            {/* Computer monitor */}
+            <Box args={[0.6, 0.5, 0.05]} position={[0, 1.3, 0.5]}>
+              <meshStandardMaterial color="#1a1a1a" metalness={0.8} roughness={0.3} />
+            </Box>
+            {/* Monitor stand */}
+            <Cylinder args={[0.08, 0.08, 0.3, 16]} position={[0, 1.0, 0.5]}>{darkMaterial}</Cylinder>
+            {/* Keyboard */}
+            <Box args={[0.4, 0.02, 0.15]} position={[0, 0.91, 0.2]}>
+              <meshStandardMaterial color="#666666" />
+            </Box>
           </>
         );
       
       case 'warehouse':
-        // Warehouse - large building-like structure with shelving (3x scale)
+        // Realistic warehouse with racks, forklift area
         return (
           <>
-            <Box args={[3.6, 2.4, 2.4]} position={[0, 1.2, 0]}>{material}</Box>
-            <Box args={[3.0, 1.8, 0.9]} position={[0, 0.9, -0.9]}>{material}</Box>
-            <Box args={[3.0, 1.8, 0.9]} position={[0, 0.9, 0.9]}>{material}</Box>
+            {/* Main building */}
+            <Box args={[4.0, 2.8, 3.0]} position={[0, 1.4, 0]}>{material}</Box>
+            {/* Roof overhang */}
+            <Box args={[4.4, 0.2, 3.4]} position={[0, 2.9, 0]}>
+              <meshStandardMaterial color="#444444" metalness={0.5} roughness={0.6} />
+            </Box>
+            {/* Storage racks (left) */}
+            <Box args={[0.2, 2.2, 2.4]} position={[-1.6, 1.1, -0.3]}>{darkMaterial}</Box>
+            <Box args={[1.2, 0.1, 2.4]} position={[-1.1, 1.5, -0.3]}>{darkMaterial}</Box>
+            <Box args={[1.2, 0.1, 2.4]} position={[-1.1, 2.1, -0.3]}>{darkMaterial}</Box>
+            {/* Storage racks (right) */}
+            <Box args={[0.2, 2.2, 2.4]} position={[1.6, 1.1, -0.3]}>{darkMaterial}</Box>
+            <Box args={[1.2, 0.1, 2.4]} position={[1.1, 1.5, -0.3]}>{darkMaterial}</Box>
+            <Box args={[1.2, 0.1, 2.4]} position={[1.1, 2.1, -0.3]}>{darkMaterial}</Box>
+            {/* Loading dock door */}
+            <Box args={[1.5, 1.8, 0.1]} position={[0, 0.9, -1.5]}>
+              <meshStandardMaterial color="#8B4513" metalness={0.2} roughness={0.7} />
+            </Box>
           </>
         );
       
       case 'packing':
-        // Packing station - table with boxes on top (3x scale)
+        // Packing station with conveyor belt and boxes
         return (
           <>
-            <Box args={[3.0, 0.6, 1.8]} position={[0, 0.3, 0]}>{material}</Box>
-            <Box args={[0.9, 0.9, 0.9]} position={[-0.6, 1.05, 0]}>{material}</Box>
-            <Box args={[0.75, 0.75, 0.75]} position={[0.6, 0.99, 0.3]}>{material}</Box>
+            {/* Packing table */}
+            <Box args={[3.5, 0.15, 2.0]} position={[0, 0.9, 0]}>
+              <meshStandardMaterial color="#8B7355" metalness={0.1} roughness={0.8} />
+            </Box>
+            {/* Table legs */}
+            <Cylinder args={[0.08, 0.08, 0.9, 16]} position={[-1.5, 0.45, -0.8]}>{darkMaterial}</Cylinder>
+            <Cylinder args={[0.08, 0.08, 0.9, 16]} position={[1.5, 0.45, -0.8]}>{darkMaterial}</Cylinder>
+            <Cylinder args={[0.08, 0.08, 0.9, 16]} position={[-1.5, 0.45, 0.8]}>{darkMaterial}</Cylinder>
+            <Cylinder args={[0.08, 0.08, 0.9, 16]} position={[1.5, 0.45, 0.8]}>{darkMaterial}</Cylinder>
+            {/* Cardboard boxes */}
+            <Box args={[0.7, 0.7, 0.7]} position={[-0.9, 1.33, 0.2]}>
+              <meshStandardMaterial color="#D2691E" metalness={0.1} roughness={0.9} />
+            </Box>
+            <Box args={[0.6, 0.6, 0.6]} position={[0.8, 1.28, -0.3]}>
+              <meshStandardMaterial color="#CD853F" metalness={0.1} roughness={0.9} />
+            </Box>
+            {/* Tape dispenser */}
+            <Cylinder args={[0.15, 0.15, 0.3, 16]} rotation={[0, 0, Math.PI / 2]} position={[0.3, 1.0, 0.5]}>
+              <meshStandardMaterial color="#FFD700" metalness={0.6} roughness={0.3} />
+            </Cylinder>
           </>
         );
       
       case 'shipping':
-        // Shipping - truck/loading dock shape (3x scale)
+        // Delivery truck with loading ramp
         return (
           <>
-            <Box args={[2.4, 1.5, 1.8]} position={[0, 0.75, 0]}>{material}</Box>
-            <Box args={[1.2, 0.9, 1.2]} position={[1.5, 0.45, 0]}>{material}</Box>
+            {/* Truck cargo container */}
+            <Box args={[3.0, 2.2, 2.0]} position={[-0.3, 1.1, 0]}>{material}</Box>
+            {/* Truck cab */}
+            <Box args={[1.2, 1.6, 2.0]} position={[2.0, 0.8, 0]}>
+              <meshStandardMaterial color={baseColor} metalness={0.7} roughness={0.2} />
+            </Box>
+            {/* Cab windows */}
+            <Box args={[0.05, 0.6, 1.6]} position={[2.5, 1.4, 0]}>{glassMaterial}</Box>
+            {/* Front bumper */}
+            <Box args={[0.3, 0.3, 1.8]} position={[2.7, 0.3, 0]}>{darkMaterial}</Box>
+            {/* Wheels */}
+            <Cylinder args={[0.4, 0.4, 0.3, 16]} rotation={[0, 0, Math.PI / 2]} position={[1.8, 0.4, -0.8]}>
+              <meshStandardMaterial color="#1a1a1a" metalness={0.3} roughness={0.7} />
+            </Cylinder>
+            <Cylinder args={[0.4, 0.4, 0.3, 16]} rotation={[0, 0, Math.PI / 2]} position={[1.8, 0.4, 0.8]}>
+              <meshStandardMaterial color="#1a1a1a" metalness={0.3} roughness={0.7} />
+            </Cylinder>
+            <Cylinder args={[0.4, 0.4, 0.3, 16]} rotation={[0, 0, Math.PI / 2]} position={[-1.2, 0.4, -0.8]}>
+              <meshStandardMaterial color="#1a1a1a" metalness={0.3} roughness={0.7} />
+            </Cylinder>
+            <Cylinder args={[0.4, 0.4, 0.3, 16]} rotation={[0, 0, Math.PI / 2]} position={[-1.2, 0.4, 0.8]}>
+              <meshStandardMaterial color="#1a1a1a" metalness={0.3} roughness={0.7} />
+            </Cylinder>
           </>
         );
       
       case 'office':
       case 'validation':
-        // Office desk - simple desk with monitor (3x scale)
+        // Modern office workstation with computer setup
         return (
           <>
-            <Box args={[2.4, 0.6, 1.5]} position={[0, 0.3, 0]}>{material}</Box>
-            <Box args={[0.9, 0.9, 0.15]} position={[0, 1.05, 0.3]}>{material}</Box>
+            {/* Desk surface */}
+            <Box args={[2.8, 0.1, 1.6]} position={[0, 0.8, 0]}>
+              <meshStandardMaterial color="#8B7355" metalness={0.3} roughness={0.6} />
+            </Box>
+            {/* Desk legs */}
+            <Cylinder args={[0.06, 0.06, 0.8, 16]} position={[-1.2, 0.4, -0.6]}>{darkMaterial}</Cylinder>
+            <Cylinder args={[0.06, 0.06, 0.8, 16]} position={[1.2, 0.4, -0.6]}>{darkMaterial}</Cylinder>
+            <Cylinder args={[0.06, 0.06, 0.8, 16]} position={[-1.2, 0.4, 0.6]}>{darkMaterial}</Cylinder>
+            <Cylinder args={[0.06, 0.06, 0.8, 16]} position={[1.2, 0.4, 0.6]}>{darkMaterial}</Cylinder>
+            {/* Monitor */}
+            <Box args={[1.0, 0.7, 0.08]} position={[0, 1.5, 0.3]}>
+              <meshStandardMaterial color="#1a1a1a" metalness={0.8} roughness={0.2} />
+            </Box>
+            {/* Monitor stand */}
+            <Cylinder args={[0.1, 0.15, 0.5, 16]} position={[0, 1.05, 0.3]}>{darkMaterial}</Cylinder>
+            {/* Keyboard */}
+            <Box args={[0.6, 0.03, 0.2]} position={[0, 0.87, -0.1]}>
+              <meshStandardMaterial color="#2a2a2a" metalness={0.5} roughness={0.5} />
+            </Box>
+            {/* Mouse */}
+            <Box args={[0.08, 0.05, 0.12]} position={[0.5, 0.87, -0.1]}>
+              <meshStandardMaterial color="#2a2a2a" metalness={0.5} roughness={0.5} />
+            </Box>
           </>
         );
       
       case 'planning':
-        // Planning station - desk with documents (flat boxes) (3x scale)
+        // Planning station with desk, computer and documents
         return (
           <>
-            <Box args={[2.7, 0.6, 1.8]} position={[0, 0.3, 0]}>{material}</Box>
-            <Box args={[0.6, 0.06, 0.9]} position={[-0.6, 0.63, 0]}>{material}</Box>
-            <Box args={[0.6, 0.06, 0.9]} position={[0.6, 0.63, 0]}>{material}</Box>
+            {/* Large planning desk */}
+            <Box args={[3.2, 0.12, 2.0]} position={[0, 0.8, 0]}>
+              <meshStandardMaterial color="#A0826D" metalness={0.2} roughness={0.7} />
+            </Box>
+            {/* Desk legs */}
+            <Cylinder args={[0.07, 0.07, 0.8, 16]} position={[-1.4, 0.4, -0.8]}>{darkMaterial}</Cylinder>
+            <Cylinder args={[0.07, 0.07, 0.8, 16]} position={[1.4, 0.4, -0.8]}>{darkMaterial}</Cylinder>
+            <Cylinder args={[0.07, 0.07, 0.8, 16]} position={[-1.4, 0.4, 0.8]}>{darkMaterial}</Cylinder>
+            <Cylinder args={[0.07, 0.07, 0.8, 16]} position={[1.4, 0.4, 0.8]}>{darkMaterial}</Cylinder>
+            {/* Document stacks */}
+            <Box args={[0.5, 0.08, 0.7]} position={[-0.9, 0.9, 0.3]}>
+              <meshStandardMaterial color="#FFFFFF" metalness={0.0} roughness={1.0} />
+            </Box>
+            <Box args={[0.5, 0.08, 0.7]} position={[0.9, 0.9, 0.3]}>
+              <meshStandardMaterial color="#FFFFFF" metalness={0.0} roughness={1.0} />
+            </Box>
+            {/* Laptop */}
+            <Box args={[0.7, 0.03, 0.5]} position={[0, 0.88, -0.3]}>
+              <meshStandardMaterial color="#2a2a2a" metalness={0.7} roughness={0.3} />
+            </Box>
+            <Box args={[0.7, 0.5, 0.03]} position={[0, 1.12, -0.53]} rotation={[Math.PI * 0.15, 0, 0]}>
+              <meshStandardMaterial color="#2a2a2a" metalness={0.7} roughness={0.3} />
+            </Box>
           </>
         );
       
       case 'accounting':
-        // Accounting - computer workstation (3x scale)
+        // Accounting workstation with multiple monitors
         return (
           <>
-            <Box args={[2.1, 0.6, 1.5]} position={[0, 0.3, 0]}>{material}</Box>
-            <Box args={[1.2, 1.2, 0.15]} position={[0, 1.2, 0.3]}>{material}</Box>
-            <Box args={[0.3, 0.6, 0.3]} position={[0, 0.9, -0.3]}>{material}</Box>
+            {/* Desk */}
+            <Box args={[2.6, 0.1, 1.8]} position={[0, 0.8, 0]}>
+              <meshStandardMaterial color="#8B7355" metalness={0.3} roughness={0.6} />
+            </Box>
+            {/* Desk legs */}
+            <Cylinder args={[0.06, 0.06, 0.8, 16]} position={[-1.1, 0.4, -0.7]}>{darkMaterial}</Cylinder>
+            <Cylinder args={[0.06, 0.06, 0.8, 16]} position={[1.1, 0.4, -0.7]}>{darkMaterial}</Cylinder>
+            <Cylinder args={[0.06, 0.06, 0.8, 16]} position={[-1.1, 0.4, 0.7]}>{darkMaterial}</Cylinder>
+            <Cylinder args={[0.06, 0.06, 0.8, 16]} position={[1.1, 0.4, 0.7]}>{darkMaterial}</Cylinder>
+            {/* Dual monitors */}
+            <Box args={[0.8, 0.6, 0.08]} position={[-0.5, 1.5, 0.4]}>
+              <meshStandardMaterial color="#1a1a1a" metalness={0.8} roughness={0.2} />
+            </Box>
+            <Box args={[0.8, 0.6, 0.08]} position={[0.5, 1.5, 0.4]}>
+              <meshStandardMaterial color="#1a1a1a" metalness={0.8} roughness={0.2} />
+            </Box>
+            {/* Monitor stands */}
+            <Cylinder args={[0.08, 0.12, 0.5, 16]} position={[-0.5, 1.05, 0.4]}>{darkMaterial}</Cylinder>
+            <Cylinder args={[0.08, 0.12, 0.5, 16]} position={[0.5, 1.05, 0.4]}>{darkMaterial}</Cylinder>
+            {/* Calculator */}
+            <Box args={[0.15, 0.03, 0.25]} position={[0, 0.87, -0.3]}>
+              <meshStandardMaterial color="#4a4a4a" metalness={0.4} roughness={0.6} />
+            </Box>
           </>
         );
       
       case 'rejection':
       case 'returns':
-        // Returns/Rejection - cross or X-shape (3x scale)
+        // Return/Rejection station with barrier and sorting bins
         return (
           <>
-            <Box args={[2.4, 0.6, 0.6]} position={[0, 0.9, 0]} rotation={[0, 0, Math.PI/4]}>{material}</Box>
-            <Box args={[2.4, 0.6, 0.6]} position={[0, 0.9, 0]} rotation={[0, 0, -Math.PI/4]}>{material}</Box>
+            {/* Base platform */}
+            <Box args={[2.5, 0.2, 2.5]} position={[0, 0.1, 0]}>
+              <meshStandardMaterial color="#666666" metalness={0.4} roughness={0.6} />
+            </Box>
+            {/* Warning barriers (cross pattern) */}
+            <Box args={[2.8, 0.6, 0.3]} position={[0, 1.0, 0]} rotation={[0, 0, Math.PI/4]}>
+              <meshStandardMaterial color="#FF6347" metalness={0.3} roughness={0.7} />
+            </Box>
+            <Box args={[2.8, 0.6, 0.3]} position={[0, 1.0, 0]} rotation={[0, 0, -Math.PI/4]}>
+              <meshStandardMaterial color="#FF6347" metalness={0.3} roughness={0.7} />
+            </Box>
+            {/* Support poles */}
+            <Cylinder args={[0.08, 0.08, 1.5, 16]} position={[-0.9, 0.75, -0.9]}>{darkMaterial}</Cylinder>
+            <Cylinder args={[0.08, 0.08, 1.5, 16]} position={[0.9, 0.75, -0.9]}>{darkMaterial}</Cylinder>
+            {/* Sorting bins */}
+            <Box args={[0.6, 0.7, 0.6]} position={[-0.7, 0.55, 0.7]}>
+              <meshStandardMaterial color="#8B0000" metalness={0.2} roughness={0.8} />
+            </Box>
+            <Box args={[0.6, 0.7, 0.6]} position={[0.7, 0.55, 0.7]}>
+              <meshStandardMaterial color="#8B0000" metalness={0.2} roughness={0.8} />
+            </Box>
           </>
         );
       
       case 'discount':
-        // Discount - star-like shape (3x scale)
+        // Discount station with promotional display
         return (
           <>
-            <Box args={[1.8, 0.9, 0.6]} position={[0, 0.9, 0]}>{material}</Box>
-            <Box args={[0.6, 0.9, 1.8]} position={[0, 0.9, 0]}>{material}</Box>
+            {/* Base */}
+            <Cylinder args={[1.2, 1.2, 0.3, 32]} position={[0, 0.15, 0]}>
+              <meshStandardMaterial color={baseColor} metalness={0.5} roughness={0.4} />
+            </Cylinder>
+            {/* Center pole */}
+            <Cylinder args={[0.15, 0.15, 1.8, 16]} position={[0, 1.05, 0]}>{material}</Cylinder>
+            {/* Star burst display (multiple arms) */}
+            <Box args={[2.2, 0.4, 0.4]} position={[0, 1.5, 0]}>{material}</Box>
+            <Box args={[2.2, 0.4, 0.4]} position={[0, 1.5, 0]} rotation={[0, Math.PI/4, 0]}>{material}</Box>
+            <Box args={[2.2, 0.4, 0.4]} position={[0, 1.5, 0]} rotation={[0, Math.PI/2, 0]}>{material}</Box>
+            <Box args={[2.2, 0.4, 0.4]} position={[0, 1.5, 0]} rotation={[0, -Math.PI/4, 0]}>{material}</Box>
+            {/* Top cap */}
+            <Cone args={[0.6, 0.8, 8]} position={[0, 2.2, 0]}>
+              <meshStandardMaterial color="#FFD700" metalness={0.8} roughness={0.2} />
+            </Cone>
           </>
         );
       
       default:
-        // Generic - simple box (3x scale)
-        return <Box args={[1.8, 1.8, 1.8]} position={[0, 0.9, 0]}>{material}</Box>;
+        // Generic station - modern kiosk
+        return (
+          <>
+            <Cylinder args={[0.8, 0.8, 1.8, 32]} position={[0, 0.9, 0]}>{material}</Cylinder>
+            <Cylinder args={[0.9, 0.9, 0.2, 32]} position={[0, 0.1, 0]}>{darkMaterial}</Cylinder>
+            <Cylinder args={[0.9, 0.9, 0.2, 32]} position={[0, 1.8, 0]}>{darkMaterial}</Cylinder>
+          </>
+        );
     }
   };
   
@@ -238,24 +422,73 @@ function SupplierLocation({ position, label, country }) {
       color={supplierColor} 
       emissive={supplierColor}
       emissiveIntensity={0.25}
-      metalness={0.3}
-      roughness={0.6}
+      metalness={0.4}
+      roughness={0.5}
+    />
+  );
+  
+  const roofMaterial = (
+    <meshStandardMaterial 
+      color="#8B0000"
+      metalness={0.7}
+      roughness={0.3}
+    />
+  );
+  
+  const windowMaterial = (
+    <meshStandardMaterial 
+      color="#87CEEB"
+      transparent
+      opacity={0.4}
+      metalness={0.8}
+      roughness={0.2}
     />
   );
   
   return (
     <group position={position}>
-      {/* Factory/Building structure - main building (3x scale) */}
-      <Box args={[1.8, 1.2, 1.5]} position={[0, 0.6, 0]}>{material}</Box>
+      {/* Main factory building */}
+      <Box args={[2.2, 1.4, 1.8]} position={[0, 0.7, 0]}>{material}</Box>
       
-      {/* Chimney/Tower (3x scale) */}
-      <Box args={[0.45, 0.9, 0.45]} position={[0.6, 1.65, 0.45]}>{material}</Box>
+      {/* Slanted roof */}
+      <Box args={[2.4, 0.2, 1.9]} position={[0, 1.5, 0]} rotation={[0, 0, 0]}>{roofMaterial}</Box>
+      <Box args={[0.2, 0.4, 1.9]} position={[1.1, 1.6, 0]} rotation={[0, 0, Math.PI/6]}>{roofMaterial}</Box>
+      <Box args={[0.2, 0.4, 1.9]} position={[-1.1, 1.6, 0]} rotation={[0, 0, -Math.PI/6]}>{roofMaterial}</Box>
       
-      {/* Side wing (3x scale) */}
-      <Box args={[0.9, 0.75, 1.2]} position={[-1.05, 0.375, 0]}>{material}</Box>
+      {/* Industrial chimney with smoke stack */}
+      <Cylinder args={[0.25, 0.3, 1.5, 16]} position={[0.7, 1.95, 0.6]}>
+        <meshStandardMaterial color="#666666" metalness={0.5} roughness={0.6} />
+      </Cylinder>
+      <Cylinder args={[0.28, 0.25, 0.3, 16]} position={[0.7, 2.85, 0.6]}>
+        <meshStandardMaterial color="#444444" metalness={0.6} roughness={0.5} />
+      </Cylinder>
       
-      {/* Loading dock (3x scale) */}
-      <Box args={[1.2, 0.3, 0.6]} position={[0, 0.15, -1.05]}>{material}</Box>
+      {/* Side warehouse extension */}
+      <Box args={[1.2, 1.0, 1.5]} position={[-1.4, 0.5, 0]}>{material}</Box>
+      <Box args={[1.3, 0.15, 1.6]} position={[-1.4, 1.05, 0]}>{roofMaterial}</Box>
+      
+      {/* Loading bay with roller door */}
+      <Box args={[1.5, 1.0, 0.1]} position={[0, 0.5, -0.95]}>
+        <meshStandardMaterial color="#8B4513" metalness={0.3} roughness={0.7} />
+      </Box>
+      {/* Loading dock platform */}
+      <Box args={[1.8, 0.3, 0.6]} position={[0, 0.15, -1.3]}>
+        <meshStandardMaterial color="#808080" metalness={0.4} roughness={0.6} />
+      </Box>
+      
+      {/* Windows on main building */}
+      <Box args={[0.5, 0.5, 0.05]} position={[-0.5, 0.9, 0.93]}>{windowMaterial}</Box>
+      <Box args={[0.5, 0.5, 0.05]} position={[0.5, 0.9, 0.93]}>{windowMaterial}</Box>
+      
+      {/* Ventilation units on roof */}
+      <Box args={[0.4, 0.3, 0.4]} position={[-0.3, 1.65, 0.2]}>
+        <meshStandardMaterial color="#A9A9A9" metalness={0.6} roughness={0.4} />
+      </Box>
+      
+      {/* Forklift parking area markers */}
+      <Box args={[0.3, 0.02, 0.3]} position={[1.2, 0.01, -1.0]}>
+        <meshStandardMaterial color="#FFFF00" metalness={0.3} roughness={0.7} />
+      </Box>
       
       {/* Label on ground plane below the supplier (adjusted for 3x scale) */}
       <Text
@@ -426,11 +659,13 @@ function AnimatedItemInstance({ itemData, instanceIndex, totalInstances, current
   const [position, setPosition] = useState([0, 0, 0]);
   const [showItem, setShowItem] = useState(false);
 
-  // Add slight offset for multiple instances of same item
+  // Add slight spatial offset for multiple instances of same item (visual separation)
   const offset = instanceIndex - (totalInstances - 1) / 2;
   const xOffset = offset * 0.3;
-  // Stagger departure for each instance - increased to 5 seconds for clear separation
-  const instanceDelay = instanceIndex * 5; // 5 seconds between each sphere
+  const zOffset = offset * 0.2; // Also offset in Z to create a cluster effect
+  
+  // NO instanceDelay - backend keyframes already handle timing!
+  // The backend uses event-driven timing, so we trust the keyframe times completely
 
   useEffect(() => {
     if (!itemData || !itemData.keyframes || itemData.keyframes.length === 0) return;
@@ -439,11 +674,10 @@ function AnimatedItemInstance({ itemData, instanceIndex, totalInstances, current
     let prevKeyframe = keyframes[0];
     let nextKeyframe = keyframes[0];
 
-    // Adjust times for this instance
-    const adjustedTime = currentTime - instanceDelay;
-
+    // Use currentTime directly - NO time adjustment!
+    // Backend keyframes already have correct event-driven timing
     for (let i = 0; i < keyframes.length; i++) {
-      if (keyframes[i].time <= adjustedTime) {
+      if (keyframes[i].time <= currentTime) {
         prevKeyframe = keyframes[i];
         nextKeyframe = keyframes[i + 1] || keyframes[i];
       } else {
@@ -457,25 +691,29 @@ function AnimatedItemInstance({ itemData, instanceIndex, totalInstances, current
       return;
     }
 
-    // Show item when it starts moving
-    setShowItem(prevKeyframe.status !== 'waiting' || adjustedTime > keyframes[1]?.time);
+    // Show item based on status (not waiting = visible)
+    setShowItem(prevKeyframe.status !== 'waiting');
 
     // Interpolate between keyframes
     if (prevKeyframe.time === nextKeyframe.time) {
-      setPosition([prevKeyframe.position[0] + xOffset, prevKeyframe.position[1], prevKeyframe.position[2]]);
+      setPosition([
+        prevKeyframe.position[0] + xOffset, 
+        prevKeyframe.position[1], 
+        prevKeyframe.position[2] + zOffset
+      ]);
     } else {
-      const t = (adjustedTime - prevKeyframe.time) / (nextKeyframe.time - prevKeyframe.time);
+      const t = (currentTime - prevKeyframe.time) / (nextKeyframe.time - prevKeyframe.time);
       const smoothT = Math.min(1, Math.max(0, t));
 
       const interpolatedPos = [
         prevKeyframe.position[0] + (nextKeyframe.position[0] - prevKeyframe.position[0]) * smoothT + xOffset,
         prevKeyframe.position[1] + (nextKeyframe.position[1] - prevKeyframe.position[1]) * smoothT,
-        prevKeyframe.position[2] + (nextKeyframe.position[2] - prevKeyframe.position[2]) * smoothT,
+        prevKeyframe.position[2] + (nextKeyframe.position[2] - prevKeyframe.position[2]) * smoothT + zOffset,
       ];
 
       setPosition(interpolatedPos);
     }
-  }, [currentTime, itemData, xOffset, instanceDelay]);
+  }, [currentTime, itemData, xOffset, zOffset]);
 
   if (!showItem || !itemData) return null;
 
@@ -487,22 +725,27 @@ function AnimatedItem({ itemData, currentTime }) {
 
   const quantity = itemData.quantity || 1;
   
-  // Calculate path progress based on first instance
+  // Calculate path progress based on keyframe timing (event-driven)
   let pathProgress = 0;
   if (itemData.keyframes && itemData.keyframes.length >= 3) {
-    const startTime = itemData.keyframes[1].time; // departure time
-    const endTime = itemData.keyframes[2].time; // arrival time
+    // Keyframe 0: waiting at supplier
+    // Keyframe 1: departing (triggered by event)
+    // Keyframe 2: arrived (arrival event)
+    const departureTime = itemData.keyframes[1].time;
+    const arrivalTime = itemData.keyframes[2].time;
     
-    if (currentTime >= startTime) {
-      if (currentTime >= endTime) {
-        pathProgress = 1;
+    if (currentTime >= departureTime) {
+      if (currentTime >= arrivalTime) {
+        pathProgress = 1; // Fully arrived
       } else {
-        pathProgress = (currentTime - startTime) / (endTime - startTime);
+        // In transit - interpolate
+        pathProgress = (currentTime - departureTime) / (arrivalTime - departureTime);
       }
     }
+    // else: pathProgress = 0 (not departed yet, waiting at supplier)
   }
   
-  // Create multiple spheres based on quantity
+  // Create multiple spheres based on quantity (visual only - all follow same timing)
   const instances = [];
   for (let i = 0; i < quantity; i++) {
     instances.push(
@@ -518,10 +761,10 @@ function AnimatedItem({ itemData, currentTime }) {
 
   return (
     <>
-      {/* Draw progressive path from supplier to warehouse */}
-      {itemData.keyframes && itemData.keyframes.length >= 3 && pathProgress >= 0.01 && (
+      {/* Draw progressive path from supplier to warehouse - only when in transit */}
+      {itemData.keyframes && itemData.keyframes.length >= 3 && pathProgress > 0 && pathProgress < 1 && (
         <DiagonalPath 
-          start={itemData.keyframes[0].position}
+          start={itemData.keyframes[1].position}
           end={itemData.keyframes[2].position}
           color={itemData.color}
           progress={pathProgress}
@@ -541,8 +784,8 @@ function Scene({ sceneData, currentTime, isPlaying, playbackSpeed = 1, onTimeUpd
     supplier_locations = [] 
   } = sceneData || {};
 
-  // Scale animation to 60 seconds total (from original duration)
-  const TARGET_DURATION = 60; // 60 seconds
+  // Scale animation to 90 seconds total (from original duration)
+  const TARGET_DURATION = 90; // 90 seconds
   const originalDuration = animation?.duration || 660;
   const timeScale = originalDuration / TARGET_DURATION;
 

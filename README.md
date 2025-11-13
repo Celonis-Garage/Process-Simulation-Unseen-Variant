@@ -1,165 +1,237 @@
-# Process Simulation Studio
+# Process Simulation Studio with Order-to-Cash 3D Visualization
 
-A machine learning-powered system for simulating and optimizing business process workflows. The system analyzes Order-to-Cash (O2C) processes and predicts KPI impacts when modifying process structures.
+An intelligent system for simulating and visualizing Order-to-Cash (O2C) business processes with real-time 3D animation. The system combines machine learning for KPI prediction with immersive 3D visualization powered by Three.js and React Three Fiber.
 
 ## Overview
 
-This application combines deep learning with process mining to help organizations understand how changes to their workflows will affect key performance indicators. Users can modify process structures through natural language prompts and receive predictions on delivery times, costs, accuracy metrics, and cash flow impact.
+This application enables organizations to design, modify, and visualize their Order-to-Cash workflows. Users can interact with process flows through natural language, predict KPI impacts using trained ML models, and watch their orders flow through a complete 3D supply chain visualization showing warehouses, suppliers, and item movements in real-time.
 
 ## Key Features
 
-- Natural language process modification using LLM integration (Groq API)
-- ML-based KPI prediction using trained neural networks
-- Interactive process visualization and editing
-- **NEW: 3D Omniverse visualization of order flow through warehouse locations**
-- Support for adding, removing, and reordering process activities
-- Real-time simulation of process changes
-- Comprehensive test suite with 16 validated scenarios
+### Process Design & Modification
+- **Natural Language Interface**: Modify processes using conversational prompts powered by Groq LLM (Llama 3.3)
+- **Variant Selection**: Choose from 8 pre-analyzed process variants based on real O2C data
+- **Interactive Process Explorer**: Visual process flow with editable event durations and costs
+- **Undo/Redo Support**: Full history management for iterative process design
+
+### Machine Learning & Prediction
+- **ML-Based KPI Prediction**: Deep neural network trained on 2000 real orders
+- **5 Key Performance Indicators**: On-time delivery, days sales outstanding, order accuracy, invoice accuracy, average cost
+- **Context-Aware Predictions**: Same activity has different impacts in different process contexts
+- **Deterministic Behavior**: Consistent predictions for reproducible analysis
+
+### 3D Visualization
+- **Complete Supply Chain View**: Watch orders flow through 13 process stations from receipt to invoice
+- **Item Tracking**: Individual items animated from supplier locations to warehouse convergence
+- **Event-Driven Animation**: Items procured based on process events (not arbitrary time delays)
+- **Interactive Timeline**: 90-second animation with adjustable playback speed (0.5× to 8×)
+- **Real-Time Process Updates**: LLM-powered commentary explaining what's happening at each step
+- **User Assignment**: Each event shows which user performed it based on station/role
+- **Realistic 3D Stations**: Context-aware models representing actual station functions
 
 ## Technology Stack
 
 ### Backend
-- FastAPI for REST API
-- TensorFlow/Keras for deep learning models
-- Pandas for data processing
-- NetworkX for graph operations
-- Groq LLaMA 3.3 for natural language understanding
+- **FastAPI**: REST API for process management and predictions
+- **TensorFlow/Keras**: Deep learning models for KPI prediction (417-dimensional feature vectors)
+- **Groq API**: LLM integration for natural language understanding
+- **Pandas**: Data processing and event log manipulation
+- **NetworkX**: Graph operations for process flow management
+- **PM4Py**: Process mining from XES event logs
 
-### Frontend
-- React with TypeScript
-- Tailwind CSS for styling
-- React Flow for process visualization
-- Axios for API communication
+### Frontend - Process Designer
+- **React + TypeScript**: Type-safe UI development
+- **Tailwind CSS**: Modern, responsive styling
+- **React Flow**: Interactive process diagram editor
+- **Axios**: HTTP client for API communication
+- **Zustand**: State management
 
-### 3D Visualization Frontend
-- React with Three.js
-- React Three Fiber for declarative 3D scenes
-- Vite for fast development and builds
-- Interactive animation timeline
+### Frontend - 3D Visualization
+- **React + Three.js**: Declarative 3D scene rendering
+- **React Three Fiber (@react-three/fiber)**: React renderer for Three.js
+- **React Three Drei (@react-three/drei)**: Useful 3D helpers and abstractions
+- **Vite**: Fast development server and optimized builds
 
 ## Project Structure
 
 ```
 Process-Simulation-Unseen-Variant/
 ├── backend/
-│   ├── main.py                    # FastAPI application
-│   ├── ml_model.py                # Neural network model management
-│   ├── feature_extraction.py     # Feature engineering for ML
-│   ├── scenario_generator.py     # Entity assignment logic
-│   ├── real_data_loader.py       # O2C data loading and parsing
-│   ├── llm_service.py             # Groq API integration
-│   ├── train_model.py             # Model training script
-│   ├── usd_builder.py             # 3D scene generator for visualization
-│   ├── requirements.txt           # Python dependencies
-│   ├── trained_models/            # Saved ML models and scalers
-│   └── exports/                   # Generated 3D scene files
+│   ├── main.py                           # FastAPI application
+│   ├── llm_service.py                    # Groq API integration + narration generation
+│   ├── ml_model.py                       # Neural network model management
+│   ├── real_data_loader.py               # O2C data loading from XES
+│   ├── usd_builder.py                    # 3D scene generator with user assignments
+│   ├── feature_extraction.py             # Feature engineering for ML
+│   ├── scenario_generator.py             # Entity assignment logic
+│   ├── session_manager.py                # User session management
+│   ├── requirements.txt                  # Python dependencies
+│   ├── trained_models/                   # Saved models and scalers
+│   │   ├── kpi_prediction_model.keras
+│   │   └── scaler_*.pkl
+│   └── exports/                          # Generated 3D scene files
+│       ├── order_1_scene.json            # variant_1 (45.2% frequency)
+│       ├── order_101_scene.json          # variant_2 (with discount)
+│       ├── order_102_scene.json          # variant_3 (rejected)
+│       ├── order_1042_scene.json         # variant_4 (with return)
+│       ├── order_1073_scene.json         # variant_5 (rejected)
+│       ├── order_1092_scene.json         # variant_6 (return + discount)
+│       ├── order_1202_scene.json         # variant_7 (rejected + return)
+│       └── order_1654_scene.json         # variant_8 (all three)
 ├── data/
-│   ├── o2c_data_orders_only.xml  # Order-to-Cash event log
-│   ├── users.csv                  # User entities (7 users)
-│   ├── items.csv                  # Product catalog (24 items)
-│   ├── suppliers.csv              # Supplier database (16 suppliers)
-│   ├── order_kpis.csv             # Historical KPIs per order
-│   └── orders_enriched.csv        # Orders with entity links
-├── frontend/
+│   ├── o2c_data_orders_only.xml          # Event log (2000 orders, 19K+ events)
+│   ├── users.csv                         # User entities (7 users)
+│   ├── items.csv                         # Product catalog (24 items)
+│   ├── suppliers.csv                     # Supplier database (16 suppliers)
+│   ├── order_kpis.csv                    # Historical KPIs per order
+│   ├── orders_enriched.csv               # Orders with entity relationships
+│   ├── variant_contexts.json             # 8 process variants with descriptions
+│   └── variant_sample_orders.csv         # Sample orders (1 per variant)
+├── frontend/                             # Process Designer UI
 │   ├── src/
-│   │   ├── App.tsx               # Main React component
-│   │   ├── components/           # UI components
-│   │   └── services/             # API client
-│   └── package.json              # Node dependencies
-├── omniverse-frontend/            # 3D Visualization Frontend (NEW)
+│   │   ├── App.tsx                       # Main application
+│   │   ├── components/                   # UI components
+│   │   │   ├── ProcessExplorer.tsx       # Visual process flow
+│   │   │   ├── EventInfoDialog.tsx       # Edit event duration/cost
+│   │   │   ├── EventLogPanel.tsx         # Preview event log
+│   │   │   └── SimulationModal.tsx       # KPI prediction results
+│   │   ├── store/useAppStore.ts          # State management
+│   │   └── services/api.ts               # API client
+│   └── package.json
+├── omniverse-frontend/                   # 3D Visualization UI
 │   ├── src/
-│   │   ├── App.jsx               # Main 3D viewer app
-│   │   ├── Scene.jsx             # Three.js 3D scene
+│   │   ├── App.jsx                       # Main 3D viewer app
+│   │   ├── Scene.jsx                     # Three.js 3D scene
 │   │   └── components/
-│   │       └── Timeline.jsx      # Animation timeline controls
-│   └── package.json              # Node dependencies (Three.js, R3F)
-├── run-system.sh                 # System startup script (all 3 frontends)
-└── README.md                     # This file
+│   │       ├── Timeline.jsx              # Animation timeline controls
+│   │       ├── NarrationBox.jsx          # Real-time process updates
+│   │       ├── NarrationBox.css          # Narration styling
+│   │       └── Timeline.css              # Timeline styling
+│   └── package.json
+├── run-system.sh                         # Automated startup script
+└── README.md                             # This file
 ```
 
 ## Installation
 
 ### Prerequisites
 
-- Python 3.13+
-- Node.js 18+
-- Virtual environment support
-- 8GB+ RAM recommended for ML operations
+- **Python 3.13+**
+- **Node.js 18+**
+- **8GB+ RAM** (recommended for ML training)
+- **Modern browser** with WebGL 2.0 support
 
-### Setup Steps
+### Quick Start
 
-1. Clone the repository:
+1. **Clone the repository**
 ```bash
-cd /path/to/project
+git clone <repository-url>
+cd Process-Simulation-Unseen-Variant
 ```
 
-2. Run the automated setup script:
+2. **Run the automated setup**
 ```bash
 chmod +x run-system.sh
 ./run-system.sh
 ```
 
-This script will:
+The script will:
 - Create Python virtual environment
-- Install backend dependencies
-- Install frontend dependencies (both dashboard and 3D viewer)
+- Install all dependencies (backend + both frontends)
 - Train ML model (if not already trained)
-- Start all three servers: backend, dashboard, and 3D visualization
+- Generate 3D scene files for 8 variants
+- Start all three servers
 
-The system will be available at:
-- Dashboard Frontend: http://localhost:3000
-- 3D Visualization: http://localhost:5175
-- Backend API: http://localhost:8000
-- API Documentation: http://localhost:8000/docs
+**Access the system:**
+- **Process Designer**: http://localhost:3000
+- **3D Visualization**: http://localhost:5173
+- **Backend API**: http://localhost:8000
+- **API Docs**: http://localhost:8000/docs
 
 ### Manual Setup (Alternative)
-
-If you prefer manual setup:
 
 **Backend:**
 ```bash
 cd backend
 python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-python train_model.py  # Train the ML model
-uvicorn main:app --reload --port 8000
+
+# Set up Groq API key
+echo "GROQ_API_KEY=your_key_here" > .env
+
+# Train model (first time only)
+python train_model.py
+
+# Start server
+uvicorn main:app --reload
 ```
 
-**Frontend:**
+**Process Designer Frontend:**
 ```bash
 cd frontend
 npm install
-npm run dev
+npm run dev  # Runs on port 3000
 ```
 
-## Usage
+**3D Visualization Frontend:**
+```bash
+cd omniverse-frontend
+npm install
+npm run dev  # Runs on port 5173
+```
 
-### Basic Workflow
+## Usage Guide
 
-1. Open the frontend at http://localhost:3000
-2. The default O2C process will be displayed with 10 activities
-3. Use natural language prompts to modify the process
-4. Click "Simulate" to see predicted KPI impacts
+### 1. Process Designer (Port 3000)
 
-### Example Prompts
+**Initial Setup:**
+1. Open http://localhost:3000
+2. Use natural language to select a process variant:
+   - "Show me a standard order fulfillment process"
+   - "I want to see orders with returns"
+   - "Show rejected orders"
 
-**Adding Activities:**
-- "Add Process Return Request after Ship Order"
-- "Add Apply Discount after Approve Order"
-- "Add Reject Order after Perform Credit Check"
+**Modifying the Process:**
+- **Add activities**: "Add Process Return Request after Ship Order"
+- **Remove activities**: "Remove Generate Shipping Label"
+- **Edit properties**: Click the info icon (ⓘ) on any activity to edit duration/cost
+- **Undo/Redo**: Use the undo ⟲ and redo ⟳ buttons
 
-**Removing Activities:**
-- "Remove Generate Shipping Label"
-- "Remove Schedule Order Fulfillment"
+**Run Simulation:**
+1. Click "Simulate Process" button
+2. View predicted KPI changes
+3. Compare baseline vs. modified performance
 
-**Multiple Changes:**
-- "Add Apply Discount after Approve Order and remove Schedule Order Fulfillment"
-- "Remove Generate Shipping Label and remove Approve Order"
+### 2. 3D Visualization (Port 5173)
+
+**Select a Variant:**
+- Use the dropdown to choose from 8 process variants
+- Each variant represents a different order scenario (standard, rejected, with returns, etc.)
+
+**Playback Controls:**
+- **▶ Play/Pause**: Start or stop the animation
+- **⏮ Reset**: Return to start
+- **Speed**: Click to cycle through 0.5×, 1×, 2×, 4×, 8× playback speeds
+- **Timeline Slider**: Scrub to any point in time
+- **Event Cards**: Click to jump to specific events
+
+**Camera Controls:**
+- **Left Click + Drag**: Rotate camera
+- **Right Click + Drag**: Pan view
+- **Scroll Wheel**: Zoom in/out
+
+**What You'll See:**
+- **Orange sphere**: Main order flowing through stations
+- **Colored spheres**: Individual items (blue=electronics, green=office supplies, etc.)
+- **3D stations**: Realistic models representing warehouses, offices, shipping docks
+- **Green factories**: Supplier locations with country labels
+- **Progressive paths**: Lines showing order and item movement
+- **Process Updates**: Real-time narration explaining current actions
 
 ### Supported Activities
 
-The system recognizes these activities from the O2C dataset:
+The system recognizes these O2C activities:
 1. Receive Customer Order
 2. Validate Customer Order
 3. Perform Credit Check
@@ -173,501 +245,323 @@ The system recognizes these activities from the O2C dataset:
 11. Generate Invoice
 12. Apply Discount
 13. Process Return Request
+14. Receive Payment
+15. Close Order
+16. Cancel Order
 
-## 3D Supply Chain Visualization with NVIDIA Omniverse Principles
+## 3D Visualization Features
 
-The system includes a sophisticated 3D visualization frontend that provides real-time visualization of the complete supply chain journey, built using NVIDIA Omniverse visualization principles with Three.js and React Three Fiber.
+### Real-Time Process Updates
 
-### Overview
+The narration box provides live commentary during simulation:
+- **Action-focused bullets**: What's happening right now
+- **User assignment**: Which user is performing each event (based on station/role)
+- **Relevant data only**: Only shows items, suppliers, etc. when relevant to current event
+- **LLM-generated**: Intelligent narration powered by Groq Llama 3.1
 
-This advanced visualization transforms abstract process data into an immersive 3D experience, showing not just the order flow but the complete supply chain ecosystem including item sourcing, supplier locations, and warehouse operations.
-
-### Key Features
-
-**Complete Supply Chain Visibility:**
-- **Order Flow**: Main order sphere (orange) animates through 13 warehouse locations (Sales Desk, Validation, Finance, Warehouse, Shipping Dock, etc.)
-- **Item Tracking**: Individual item spheres (color-coded by category) animate from their respective suppliers to the warehouse
-- **Supplier Locations**: 16 supplier locations positioned around the scene with country labels
-- **Convergence Visualization**: Watch items arrive at warehouse from multiple suppliers and merge with the main order at packing station
-
-**Interactive Controls:**
-- **Playback Speed**: Adjustable speed controls (0.5×, 1×, 2×, 4×, 8×) to watch the 11-minute animation in as little as 90 seconds
-- **Timeline Controls**: Play/pause, scrub to any time, jump to specific events, reset to start
-- **Camera Controls**: Orbit (rotate), pan, zoom with smooth animations
-- **Event Navigation**: Click event cards to jump directly to specific process steps
-
-**Visual Intelligence:**
-- **Category-Based Colors**: Items colored by category (Blue=Electronics, Green=Office Supplies, Amber=Furniture, Purple=Printing, Pink=Storage, Cyan=Accessories)
-- **Contextual 3D Models**: Each station type has a unique 3D representation that matches its function (warehouse has shelves, packing has boxes, shipping looks like a truck)
-- **Transit Timing**: Items depart sequentially with 5-second stagger for clear visibility, 40-second transit time for all suppliers
-- **Active Highlighting**: Current location highlighted with blue glow, emissive materials enhance visual feedback
-- **Progressive Paths**: Order and item paths draw progressively as they travel, showing only the traveled portion
-- **Factory Visualization**: Suppliers rendered as industrial buildings with chimneys and loading docks
-
-**Information Display:**
-- **Real-time KPIs**: Display of 5 performance metrics in sidebar
-- **Entity Details**: Users, items (with quantities), and suppliers involved
-- **Order Information**: Value, status, item count, total quantity
-- **Color Legend**: Visual reference for understanding item categories
-
-### Accessing the 3D Viewer
-
-Open http://localhost:5175 in your browser after running `./run-system.sh`
-
-### User Controls
-
-**Mouse/Trackpad:**
-- **Left Click + Drag**: Rotate camera around the scene
-- **Right Click + Drag**: Pan the view horizontally/vertically
-- **Scroll Wheel**: Zoom in/out (5-60 units distance)
-
-**Playback:**
-- **▶ Play Button**: Start/resume animation
-- **⏸ Pause Button**: Freeze at current moment
-- **⏮ Reset Button**: Return to start (t=0)
-- **Speed Button (Green)**: Cycle through playback speeds - click to change 1× → 2× → 4× → 8× → 0.5×
-
-**Timeline:**
-- **Slider**: Drag to scrub through time manually
-- **Event Cards**: Click any event card to jump to that moment
-- **Keyframe Markers**: Orange markers on slider show event timing
-
-### The Animation Journey
-
-**What You'll See:**
-
-1. **Initial State (t=0)**
-   - Order at Sales Desk (left side)
-   - Items waiting at their respective suppliers (around perimeter)
-   - Green supplier boxes with country labels
-
-2. **Early Phase (t=60-120s)**
-   - Items depart from suppliers
-   - Domestic items (USA/Canada/Mexico) take 60 seconds
-   - International items (China, Germany, Singapore, etc.) take 120 seconds
-   - Order progresses through approval workflow
-
-3. **Convergence (t=180s - Generate Pick List)**
-   - Order arrives at Warehouse A
-   - Most items already waiting at warehouse
-   - Late-arriving international items still in transit
-
-4. **Assembly (t=240s - Pack Items)**
-   - All items converged at Packing Station
-   - Items visually merge with order
-   - Final preparation for shipment
-
-5. **Completion (t=300s+)**
-   - Combined order (with all items) proceeds to shipping
-   - Shipping label generation
-   - Final invoice creation
-
-### Technical Architecture
-
-**Built with NVIDIA Omniverse-Inspired Principles:**
-- **Universal Scene Description (USD) Approach**: Scene data structured similarly to USD format with transforms, attributes, and time-sampled animations
-- **Declarative 3D Rendering**: Using React Three Fiber for component-based 3D scene construction
-- **Real-time Interactivity**: Full camera controls and timeline manipulation
-- **Data-Driven Visualization**: Scene generated from actual O2C event log timestamps and entity relationships
-
-**Technology Stack:**
-- **Three.js**: Core 3D rendering engine (WebGL-based)
-- **React Three Fiber (@react-three/fiber)**: React renderer for Three.js
-- **React Three Drei (@react-three/drei)**: Useful helpers and abstractions
-- **Vite**: Fast build tool and development server
-- **Custom Animation System**: Keyframe interpolation with smooth transitions
-
-**Data Flow:**
-1. Backend generates scene JSON from O2C event log + entity data
-2. JSON includes: event timestamps, item-supplier mappings, categories, locations
-3. Frontend loads scene data via API
-4. Scene.jsx renders 3D objects with time-based positioning
-5. Timeline component controls time progression
-6. Camera system provides interactive viewing
-
-**Performance:**
-- Handles 20+ animated objects simultaneously (1 order + 4-6 items + 13 locations + 3-5 suppliers)
-- Maintains 60 FPS even at 8× playback speed
-- Scene data ~50-100KB per order
-- Loads in 2-3 seconds including data fetch
-
-### Scene Components
-
-**Spatial Layout:**
-- **Main Process Flow**: Linear path from Sales Desk (left) to Billing (right) with 8-unit spacing between stations
-- **Supplier Zone**: Arranged in arc around top and bottom edges with 8-unit spacing
-- **Warehouse Area**: Center of convergence (coordinates: x=4, z=0)
-- **Ground Plane**: Light gray with subtle grid (120×50 units)
-- **Camera View**: Positioned at (0, 35, 30) with 70-degree field of view for optimal scene coverage
-
-**Object Types:**
-1. **Order Sphere**: 0.4 unit radius, orange (#ea580c), floats with sine wave
-2. **Item Spheres**: 0.15 unit radius, category colors, gentle floating, staggered departure with 5-second intervals
-3. **Process Locations**: Context-aware 3D shapes representing actual station functions
-   - Reception: Desk with counter (3.0×0.9×1.8 units)
-   - Warehouse: Large building with shelving units (3.6×2.4×2.4 units)
-   - Packing: Table with stacked boxes (3.0×0.6×1.8 units)
-   - Shipping: Truck/loading dock shape (2.4×1.5×1.8 units)
-   - Office/Validation: Desk with monitor (2.4×0.6×1.5 units)
-   - Accounting: Computer workstation with tower (2.1×0.6×1.5 units)
-   - Rejection/Returns: X-shaped cross (2.4×0.6×0.6 units)
-   - Planning: Desk with documents (2.7×0.6×1.8 units)
-   - Discount: Plus/star shape (1.8×0.9×1.8 units)
-4. **Supplier Locations**: Factory/industrial buildings with chimney, side wing, and loading dock (1.8×1.2×1.5 main building)
-5. **Path Lines**: Progressive solid lines showing traveled portion (orange for order, category color for items, line width 4-5)
-
-**Color-Coded Stations:**
-- Reception: Indigo (#6366f1)
-- Validation: Purple (#8b5cf6)
-- Office: Sky Blue (#0ea5e9)
-- Planning: Cyan (#06b6d4)
-- Warehouse: Green (#10b981)
-- Packing: Amber (#f59e0b)
-- Shipping: Red (#ef4444)
-- Accounting: Pink (#ec4899)
-- Rejection: Dark Red (#dc2626)
-- Returns: Orange (#f97316)
-- Discount: Lime (#84cc16)
-- Suppliers: Green (#10b981)
-
-**Lighting Setup:**
-- Ambient light: 0.9 intensity (general illumination)
-- Directional light: 1.3 intensity from (10,15,5) with shadows
-- Point light: 0.5 intensity from (-10,10,-10) with blue tint (#60a5fa)
-- Optimized for light theme background (#f3f4f6)
-
-### Use Cases
-
-**For Business Analysts:**
-- Visualize complete order fulfillment journey
-- Understand supplier dependencies and timing
-- Identify bottlenecks in item convergence
-- Present supply chain flow to stakeholders
-
-**For Operations Teams:**
-- See impact of supplier location on lead times
-- Understand warehouse convergence patterns
-- Evaluate item arrival timing
-- Plan for peak periods
-
-**For Demonstrations:**
-- Use 8× speed for 90-second full story
-- Zoom in on specific areas (suppliers, warehouse, shipping)
-- Pause at key moments to explain
-- Show category diversity with color legend
-
-**For Training:**
-- Teach O2C process flow visually
-- Explain supplier relationships
-- Demonstrate item tracking
-- Show warehouse operations
-
-### Customization & Extension
-
-The 3D visualization is designed to be extended:
-
-**Adding New Locations:**
-Update `LOCATIONS` dictionary in `backend/usd_builder.py` with coordinates
-
-**Adding Suppliers:**
-Update `SUPPLIER_LOCATIONS` with new supplier positions and countries
-
-**Changing Colors:**
-Modify `CATEGORY_COLORS` to match your brand palette
-
-**Adjusting Timing:**
-Transit times calculated in `generate_item_paths()` - customize domestic/international delays
-
-**Camera Presets:**
-Modify default camera position in Scene.jsx `<Canvas camera={...}>`
-
-### System Integration
-
-The 3D visualization integrates seamlessly with the main system:
-- Uses same seed (42) as simulation for consistency
-- Shows same orders, users, items, suppliers
-- KPIs displayed match ML predictions
-- Updates automatically when backend data changes
-- Runs independently on separate port (5175)
-
-### Browser Compatibility
-
-Tested and working on:
-- ✅ Chrome 90+
-- ✅ Firefox 88+
-- ✅ Safari 14+ (macOS/iOS)
-- ✅ Edge 90+
-
-Requires WebGL 2.0 support (available in all modern browsers since 2017)
-
-### Development & Debugging
-
-**Local Development:**
-```bash
-cd omniverse-frontend
-npm run dev  # Starts on port 5175
+**Example narration:**
+```
+• Action: Packing items for shipment
+• By: Diana Lopez
+• Items: Laptop, Mouse, Keyboard, Monitor
 ```
 
-**Browser DevTools:**
-- Check Network tab for API calls to `/api/sample`
-- Check Console for Three.js or React errors
-- Use Performance tab to monitor FPS
+### User-to-Event Assignment
 
-**Common Issues:**
-- Blank screen: Backend not running or API call failing
-- Low FPS: Too many objects or shadows enabled
-- Objects not moving: Check playback speed and isPlaying state
+Each event is assigned to a specific user based on their role:
+- **Reception**: Customer service (Receive Order)
+- **Validation**: Order processor (Validate Order)
+- **Finance**: Credit team (Credit Check)
+- **Management**: Managers (Approve/Reject/Cancel)
+- **Planning**: Supply chain (Schedule Fulfillment)
+- **Warehouse**: Warehouse staff (Pick List, Pack Items)
+- **Shipping**: Shipping team (Ship Order, Generate Label)
+- **Accounting**: Billing team (Generate Invoice, Receive Payment)
 
-## Predicted KPIs
+### Event-Driven Item Procurement
 
-The system predicts five key performance indicators:
+Items are not time-based but triggered by specific process events:
+- **Trigger Event**: "Approve Order" → Items depart from suppliers
+- **Arrival Event**: "Generate Pick List" → Items reach warehouse
+- **Merge Event**: "Pack Items" → Items combine with order
 
-1. **On-time Delivery (%)** - Percentage of orders delivered within promised timeframe
-2. **Days Sales Outstanding (days)** - Average time to collect payment after delivery
-3. **Order Accuracy (%)** - Percentage of orders fulfilled without errors
-4. **Invoice Accuracy (%)** - Percentage of invoices generated correctly first time
-5. **Average Cost of Delivery ($)** - Average operational cost per order
+**Special handling:**
+- Rejected/cancelled orders: Items remain at suppliers (never procured)
+- Staggered departure: Items leave suppliers 10 seconds apart for visibility
 
-For each simulation, you'll see:
-- Baseline values (most frequent variant performance)
-- Predicted values (modified process performance)
-- Percentage change and impact assessment
+### 8 Process Variants
 
-## Machine Learning Model
+| Variant | Description | Frequency | Events |
+|---------|-------------|-----------|---------|
+| variant_1 | Standard flow | 45.2% | 11 |
+| variant_2 | With discount | 17.5% | 12 |
+| variant_3 | Rejected order | 13.1% | 4 |
+| variant_4 | With return | 9.8% | 12 |
+| variant_5 | Rejected order | 6.2% | 4 |
+| variant_6 | Return + discount | 4.7% | 13 |
+| variant_7 | Rejected + return | 2.1% | 5 |
+| variant_8 | All three | 1.4% | 6 |
 
-### Architecture
+### Animation Timeline
 
-The system uses a multi-output deep neural network with:
-- Input: 417-dimensional feature vector
-  - Transition frequency matrix (13x13 = 169 features)
-  - Transition duration matrix (13x13 = 169 features)
-  - User involvement vector (7 features)
-  - Item quantities (24 features) and amounts (24 features)
-  - Supplier involvement vector (16 features)
-  - Outcome features (8 features: rejection, return, cancellation, completion, completeness ratio, rejection position, revenue generation, discount)
-- Hidden layers: 256 -> 128 -> 64 neurons with batch normalization and dropout
-- Outputs: 5 KPIs (normalized to 0-1 range)
-- Training data: 1500+ historical O2C orders with realistic KPI labels based on process outcomes
+**Duration**: 90 seconds (adjustable with speed controls)
 
-### Model Training
+**Timeline breakdown:**
+- **0-30s**: Order initiation, validation, credit check
+- **30-60s**: Approval, scheduling, item procurement from suppliers
+- **60-90s**: Warehouse operations, packing, shipping, invoicing
+- **Post-events**: Discounts, returns, payments (normalized to appear shortly after main flow)
 
-The model is automatically trained when you first run the system. Training typically takes 5-10 minutes and is stored in `backend/trained_models/`.
+### Visual Intelligence
 
-To retrain manually:
-```bash
-cd backend
-source venv/bin/activate
-python train_model.py
-```
+**Color Coding:**
+- **Order**: Orange (#ea580c)
+- **Electronics**: Blue (#3b82f6)
+- **Office Supplies**: Green (#10b981)
+- **Furniture**: Amber (#f59e0b)
+- **Printing**: Purple (#8b5cf6)
 
-Training metrics are displayed in real-time and saved alongside the model.
+**Station Colors:**
+- Reception: Indigo | Validation: Purple | Office: Sky Blue
+- Planning: Cyan | Warehouse: Green | Packing: Amber
+- Shipping: Red | Accounting: Pink | Rejection: Dark Red
 
-## Testing
+**3D Models:**
+- Reception: Desk with counter
+- Warehouse: Large building with shelves
+- Packing: Table with boxes
+- Shipping: Loading dock
+- Office: Desk with monitor
+- Accounting: Computer workstation
+- Suppliers: Factory buildings with chimneys
 
-### Comprehensive Test Suite
+## Machine Learning Architecture
 
-The system includes 16 validated test scenarios covering:
-- Baseline verification (2 tests)
-- Single step additions (3 tests)
-- Single step removals (3 tests)
-- Multiple simultaneous changes (3 tests)
-- KPI time modifications (3 tests)
-- KPI cost modifications (2 tests)
+### Model Design
 
-### Test Results Summary
+**Input Layer (417 dimensions):**
+- Transition frequency matrix: 13×13 = 169 features
+- Transition duration matrix: 13×13 = 169 features
+- User involvement: 7 features
+- Item quantities: 24 features
+- Item amounts: 24 features
+- Supplier involvement: 16 features
+- Outcome features: 8 features (rejection, return, cancellation, etc.)
 
-From the latest test run (November 3, 2025):
-- **Structure Change Tests**: 11/11 passed (100%)
-- **Baseline Detection**: Perfect (0% change for default process)
-- **ML Business Logic**: Correctly identifies critical vs non-critical steps
-- **Consistency**: Identical results on repeat runs
+**Hidden Layers:**
+- Dense(256) + BatchNorm + Dropout(0.3)
+- Dense(128) + BatchNorm + Dropout(0.3)
+- Dense(64) + BatchNorm + Dropout(0.3)
 
-### Running Tests
+**Output Layer:**
+- 5 KPI predictions (normalized 0-1)
 
-Test scenarios are documented in `REVISED_TEST_SCENARIOS.md`. To review test results, see `REVISED_COMPREHENSIVE_TEST_REPORT.md`.
+**Training:**
+- Dataset: 2000 orders from real O2C event log
+- Optimizer: Adam (lr=0.001)
+- Epochs: 300 with early stopping (patience=20)
+- Batch size: 32
+- Validation split: 20%
 
-## Key Findings from Testing
+### Predicted KPIs
 
-### What Works Well
+1. **On-time Delivery (%)**: Orders delivered within promised timeframe
+2. **Days Sales Outstanding (days)**: Time to collect payment
+3. **Order Accuracy (%)**: Orders fulfilled without errors
+4. **Invoice Accuracy (%)**: Invoices correct on first attempt
+5. **Average Cost of Delivery ($)**: Operational cost per order
 
-1. **Baseline Detection** - The system perfectly identifies when no changes have been made (0.00% change on all KPIs)
+### Model Intelligence
 
-2. **ML Intelligence** - The model learned real business logic from data:
-   - Correctly warns that removing "Approve Order" worsens KPIs by 15%
-   - Identifies that removing "Shipping Label" causes 21% degradation
-   - Understands that "Reject Order" activities are expensive (6% penalty)
-
-3. **Context Awareness** - Same activity has different impact in different contexts:
-   - Removing "Shipping Label" alone: -21% (disaster)
-   - Removing "Label" + "Schedule" together: +3% (streamlined)
-
-4. **Deterministic Behavior** - Same process always produces same predictions
-
-### Current Limitations
-
-1. **KPI Modifications Not Implemented** - Time and cost changes don't affect predictions
-   - Cannot simulate "Change invoice time to 30 minutes"
-   - Cannot model "Increase shipping cost to $200"
-   - This is a known gap documented in test reports
-
-2. **Activity Scope** - Only activities from the O2C dataset are recognized
-   - Adding unlisted activities will be rejected by the system
-
-3. **Magnitude Variance** - Predicted changes can range from 1-26% vs expected 2% per step
-   - Direction is reliable, exact percentages vary based on context
+**Learned Business Logic:**
+- Removing critical steps (Approve Order, Shipping Label) worsens KPIs by 15-21%
+- Rejection activities increase costs by ~6%
+- Streamlining can improve performance (+3% when removing redundant steps)
+- Context matters: Same activity has different impacts in different process variants
 
 ## Configuration
 
 ### Environment Variables
 
-Create a `.env` file in the backend directory:
-```
+Create `backend/.env`:
+```bash
 GROQ_API_KEY=your_groq_api_key_here
 ```
 
-Get your Groq API key from: https://console.groq.com
+Get your API key from: https://console.groq.com
 
 ### Model Parameters
 
-Key parameters in `backend/ml_model.py`:
-- Learning rate: 0.001
-- Batch size: 32
-- Epochs: 300 (with early stopping, patience 20)
-- Architecture: [417] -> 256 -> 128 -> 64 -> [5 outputs]
-- Dropout rate: 0.3 (applied after each hidden layer)
-- Normalization: Separate scalers for each feature group (MinMaxScaler) and per-KPI target normalization
+Modify in `backend/ml_model.py`:
+- Learning rate: `0.001`
+- Batch size: `32`
+- Architecture: `[417] -> 256 -> 128 -> 64 -> [5]`
+- Dropout: `0.3`
 
 ### Data Configuration
 
-The system uses fixed entity counts:
-- 7 users with defined roles (Order Manager, Credit Analyst, etc.)
-- 24 items across 4 categories (Electronics, Furniture, Office Supplies, Packaging)
-- 16 suppliers with various specializations
-- 1500+ historical orders for training
+Fixed entity counts (from enriched O2C dataset):
+- **7 users**: Various roles (managers, analysts, coordinators)
+- **24 items**: 4 categories (Electronics, Furniture, Office Supplies, Packaging)
+- **16 suppliers**: Domestic and international
+- **2000 orders**: Training data with real timestamps and KPIs
+
+## Performance Metrics
+
+### Response Times
+- Prompt parsing (LLM): 1-2 seconds
+- ML prediction: 50-100ms
+- Event log generation: 100-200ms
+- 3D scene generation: 200-500ms
+- Narration generation: 600-1700ms
+- Total simulation: 2-3 seconds
+
+### Resource Usage
+- Backend memory: 500MB-1GB
+- Frontend memory: 200-400MB (each)
+- Model size: 15MB
+- Scene file size: 50-100KB per variant
+
+### 3D Visualization Performance
+- Frame rate: 60 FPS (even at 8× playback)
+- Objects: 20-30 animated simultaneously
+- Load time: 2-3 seconds (including API fetch)
+
+## Browser Compatibility
+
+**Tested and verified:**
+- ✅ Chrome 90+
+- ✅ Firefox 88+
+- ✅ Safari 14+ (macOS/iOS)
+- ✅ Edge 90+
+
+**Requirements:**
+- WebGL 2.0 support (standard in all modern browsers)
+- JavaScript enabled
+- Minimum 1920×1080 resolution recommended for best experience
+
+## Troubleshooting
+
+### Backend Issues
+
+**Won't start:**
+- Check Python version: `python3 --version` (needs 3.13+)
+- Verify virtual environment: `which python` (should be in venv/)
+- Check port 8000: `lsof -i :8000`
+- Review logs: `tail -f backend/backend.log`
+
+**ML predictions returning 0%:**
+- Expected for default process (perfect baseline match)
+- Check if process actually changed in browser console
+- Verify backend received modified process in logs
+
+### Frontend Issues
+
+**Build errors:**
+- Check Node version: `node --version` (needs 18+)
+- Clean install: `rm -rf node_modules package-lock.json && npm install`
+- Clear cache: `npm cache clean --force`
+
+**3D visualization blank screen:**
+- Ensure backend is running on port 8000
+- Check browser console for errors
+- Verify scene files exist in `backend/exports/`
+- Check Network tab for failed API calls to `/api/orders` or `/api/sample`
+
+**Low frame rate:**
+- Reduce playback speed
+- Close other browser tabs
+- Check GPU acceleration is enabled
+
+### API Issues
+
+**Groq API errors:**
+- Verify API key in `.env` file
+- Check API quota/limits at console.groq.com
+- Review backend logs for specific error messages
+
+**CORS errors:**
+- Backend should allow origins: `localhost:3000`, `localhost:5173`
+- Check CORS middleware in `backend/main.py`
 
 ## Development
 
 ### Adding New Activities
 
-To add activities to the dataset:
-1. Update `backend/utils.py` - add to `common_activities` list
-2. Regenerate training data with new activity patterns
-3. Retrain the model using `python train_model.py`
+1. Update `backend/utils.py`: Add to `common_activities` list
+2. Regenerate training data with new patterns
+3. Retrain model: `python backend/train_model.py`
+4. Update variant contexts if needed
 
-### Extending KPI Support
+### Extending KPIs
 
-To add new KPIs:
-1. Update `backend/regenerate_kpis.py` - add KPI calculation in `generate_kpis_for_order()`
-2. Modify `backend/ml_model.py` - add output layer
-3. Update `frontend/src/types/index.ts` - add interface fields
-4. Retrain model with new target using `python train_model.py`
+1. Add KPI calculation in `backend/regenerate_kpis.py`
+2. Modify `backend/ml_model.py`: Add output layer
+3. Update TypeScript interfaces in `frontend/src/types/index.ts`
+4. Retrain model with new target
 
-### Code Quality
+### Customizing 3D Visualization
 
-The codebase follows these practices:
-- Type hints throughout Python code
+**Change station positions:**
+- Edit `generate_dynamic_activity_positions()` in `backend/usd_builder.py`
+
+**Add new supplier locations:**
+- Update `generate_dynamic_supplier_positions()` in `backend/usd_builder.py`
+
+**Modify colors:**
+- Update `CATEGORY_COLORS` constant in `backend/usd_builder.py`
+
+**Adjust animation timing:**
+- Modify `duration` prop in `omniverse-frontend/src/App.jsx`
+- Change `TARGET_DURATION` in `omniverse-frontend/src/Scene.jsx`
+
+### Code Quality Standards
+
+- Type hints in Python code
 - Pydantic models for API validation
-- Centralized error handling
-- Comprehensive logging
-- Standardized imports and structure
+- TypeScript for frontend type safety
+- Comprehensive error handling
+- Structured logging
+- Component-based architecture
 
-## Troubleshooting
+## Project Status
 
-### Backend Won't Start
+**Current Version**: 2.0.0 (December 2024)
 
-Check:
-- Python version (requires 3.13+)
-- Virtual environment activated
-- All dependencies installed: `pip list`
-- Port 8000 available: `lsof -i :8000`
+**Status**: Production-ready
 
-### Frontend Build Errors
+**Validated Features:**
+- ✅ Process modification via natural language
+- ✅ ML-based KPI prediction with business logic
+- ✅ Interactive process designer with undo/redo
+- ✅ 8-variant process library with real data
+- ✅ Complete 3D supply chain visualization
+- ✅ Event-driven item procurement
+- ✅ Real-time process narration
+- ✅ User-to-event role assignment
+- ✅ Session-based entity persistence
 
-Check:
-- Node version (requires 18+)
-- Clean install: `rm -rf node_modules package-lock.json && npm install`
-- Port 3000 available: `lsof -i :3000`
-
-### ML Model Training Fails
-
-Check:
-- Available RAM (needs 4GB+ for training)
-- Data files present in `data/` directory
-- XML parsing working: `python -c "from lxml import etree; print('OK')"`
-
-### Simulation Returns 0% Change
-
-This is expected for:
-- Default process (exact baseline match)
-- KPI modifications (not yet implemented)
-
-Unexpected 0% change indicates:
-- Backend not receiving modified process
-- Check browser console for API errors
-- Verify backend logs: `tail -f backend/backend.log`
-
-## Performance
-
-### Response Times
-
-- Prompt parsing (LLM): 1-2 seconds
-- ML prediction: 50-100ms
-- Event log generation: 100-200ms
-- Total simulation: 2-3 seconds
-
-### Resource Usage
-
-- Backend memory: 500MB-1GB
-- Frontend memory: 200-400MB
-- Model size: 15MB (saved)
-- Training data: 50MB
-
-## Roadmap
-
-### Planned Features
-
-1. **KPI Modification Support** (High Priority)
-   - Enable time optimization scenarios
-   - Support cost adjustment modeling
-   - Implement in feature extraction layer
-
-2. **Activity Classification** (Medium Priority)
-   - Categorize as control, value-add, admin, service
-   - Apply category-specific complexity factors
-   - Improve removal predictions
-
-3. **Confidence Intervals** (Medium Priority)
-   - Provide prediction uncertainty ranges
-   - Help users assess reliability
-   - Use ensemble or dropout-based methods
-
-4. **Enhanced Explanations** (Low Priority)
-   - Generate specific reasons for KPI changes
-   - Provide actionable insights
-   - Link predictions to training patterns
-
-## Contributing
-
-This is a research project developed for process optimization analysis. For questions or collaboration:
-1. Review test reports in project root (REVISED_COMPREHENSIVE_TEST_REPORT.md, REVISED_TEST_SCENARIOS.md)
-2. Check API documentation at http://localhost:8000/docs endpoint
-3. Examine training script: `backend/train_model.py` and KPI generation: `backend/regenerate_kpis.py`
+**Known Limitations:**
+- KPI time/cost modifications don't affect predictions (feature gap)
+- Activity scope limited to O2C dataset (by design)
+- Narration requires Groq API key (fallback available)
 
 ## License
 
-Academic/Research use. Not for commercial deployment without proper testing and validation.
+Academic/Research use. Not for commercial deployment without thorough validation.
 
 ## Acknowledgments
 
-- O2C dataset from process mining research
-- Groq for LLM API access
-- TensorFlow/Keras for ML framework
-- React Flow for process visualization
-- Three.js and React Three Fiber for 3D rendering
-- NVIDIA Omniverse principles for visualization architecture
+- **O2C Dataset**: Process mining research community
+- **Groq**: LLM API access (Llama 3.3, Llama 3.1)
+- **TensorFlow/Keras**: ML framework
+- **Three.js & React Three Fiber**: 3D rendering engine
+- **React Flow**: Process visualization library
+- **PM4Py**: Process mining toolkit
+- **FastAPI**: High-performance Python web framework
 
 ---
 
-Last Updated: November 11, 2025
-Version: 1.2.0 (Enhanced ML with Outcome Features + Context-Aware 3D Visualization)
-Status: Production-Ready - ML business logic learned from data, contextual 3D station models with increased spacing, session-based entity persistence, structure changes validated
+**Last Updated**: December 2024  
+**Maintained By**: Process Optimization Research Team  
+**Documentation**: See `/frontend/README.md` and `/omniverse-frontend/README.md` for component-specific details

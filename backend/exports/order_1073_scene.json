@@ -1,0 +1,542 @@
+{
+  "case_id": "order_1073",
+  "order_info": {
+    "order_value": 528.88,
+    "order_status": "Rejected",
+    "num_items": 5,
+    "total_quantity": 12
+  },
+  "kpis": {
+    "on_time_delivery": 6.24,
+    "days_sales_outstanding": 71.5,
+    "order_accuracy": 11.53,
+    "invoice_accuracy": 32.9,
+    "avg_cost_delivery": 53.75
+  },
+  "entities": {
+    "users": [
+      "U001",
+      "U002"
+    ],
+    "items": [
+      {
+        "id": "I020",
+        "name": "Magazine Holder",
+        "quantity": 1,
+        "line_total": 14.99
+      },
+      {
+        "id": "I023",
+        "name": "Label Maker",
+        "quantity": 1,
+        "line_total": 69.99
+      },
+      {
+        "id": "I024",
+        "name": "Shipping Labels (Pack of 100)",
+        "quantity": 7,
+        "line_total": 118.93
+      },
+      {
+        "id": "I018",
+        "name": "Desk Mat",
+        "quantity": 1,
+        "line_total": 24.99
+      },
+      {
+        "id": "I013",
+        "name": "Filing Cabinet",
+        "quantity": 2,
+        "line_total": 299.98
+      }
+    ],
+    "suppliers": [
+      "S008",
+      "S014",
+      "S014",
+      "S007",
+      "S008"
+    ]
+  },
+  "animation": {
+    "duration": 240.0,
+    "keyframes": [
+      {
+        "time": 0.0,
+        "position": [
+          -36,
+          0,
+          0
+        ],
+        "event": "Receive Customer Order",
+        "label": "Receive Order",
+        "timestamp": "2050-03-04T21:32:15.348555",
+        "user": "U001"
+      },
+      {
+        "time": 60.0,
+        "position": [
+          -28,
+          0,
+          0
+        ],
+        "event": "Validate Customer Order",
+        "label": "Validate",
+        "timestamp": "2050-03-04T21:33:15.348555",
+        "user": "U002"
+      },
+      {
+        "time": 120.0,
+        "position": [
+          -20,
+          0,
+          0
+        ],
+        "event": "Perform Credit Check",
+        "label": "Credit Check",
+        "timestamp": "2050-03-04T21:34:15.348555",
+        "user": "U001"
+      },
+      {
+        "time": 180.0,
+        "position": [
+          -20,
+          0,
+          -6
+        ],
+        "event": "Reject Order",
+        "label": "Reject",
+        "timestamp": "2050-03-04T21:35:15.348555",
+        "user": "U002"
+      },
+      {
+        "time": 240.0,
+        "position": [
+          -4,
+          0,
+          6
+        ],
+        "event": "Apply Discount",
+        "label": "Discount",
+        "timestamp": "2050-03-04T21:36:15.348555",
+        "user": "U001"
+      }
+    ]
+  },
+  "locations": [
+    {
+      "name": "Receive Customer Order",
+      "label": "Receive Order",
+      "type": "main",
+      "position": [
+        -36,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Validate Customer Order",
+      "label": "Validate",
+      "type": "main",
+      "position": [
+        -28,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Perform Credit Check",
+      "label": "Credit Check",
+      "type": "main",
+      "position": [
+        -20,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Reject Order",
+      "label": "Reject",
+      "type": "deviation",
+      "position": [
+        -20,
+        0,
+        -6
+      ]
+    },
+    {
+      "name": "Apply Discount",
+      "label": "Discount",
+      "type": "deviation",
+      "position": [
+        -4,
+        0,
+        6
+      ]
+    }
+  ],
+  "item_paths": [
+    {
+      "item_id": "I020",
+      "name": "Magazine Holder",
+      "quantity": 1,
+      "category": "Others",
+      "supplier_id": "S001",
+      "supplier_name": "S001",
+      "color": "#6b7280",
+      "keyframes": [
+        {
+          "time": 0.0,
+          "position": [
+            -18,
+            0,
+            0
+          ],
+          "label": "At S001 (Order will be rejected - no procurement)",
+          "status": "waiting",
+          "event_trigger": null
+        },
+        {
+          "time": 180.0,
+          "position": [
+            -18,
+            0,
+            0
+          ],
+          "label": "At S001 (Order Rejected - Not Shipped)",
+          "status": "waiting",
+          "event_trigger": "Reject Order"
+        },
+        {
+          "time": 220.0,
+          "position": [
+            -18,
+            0,
+            0
+          ],
+          "label": "Order Rejected - Items Not Procured",
+          "status": "waiting",
+          "event_trigger": "Reject Order"
+        },
+        {
+          "time": 175.0,
+          "position": [
+            -18,
+            0,
+            0
+          ],
+          "label": "Order Rejected - Items Remain at Supplier",
+          "status": "waiting",
+          "event_trigger": null
+        },
+        {
+          "time": 180.0,
+          "position": [
+            -18,
+            0,
+            0
+          ],
+          "label": "Order Rejected - Items Remain at Supplier",
+          "status": "waiting",
+          "event_trigger": "Reject Order"
+        }
+      ]
+    },
+    {
+      "item_id": "I023",
+      "name": "Label Maker",
+      "quantity": 1,
+      "category": "Others",
+      "supplier_id": "S001",
+      "supplier_name": "S001",
+      "color": "#6b7280",
+      "keyframes": [
+        {
+          "time": 0.0,
+          "position": [
+            -18,
+            0,
+            0
+          ],
+          "label": "At S001 (Order will be rejected - no procurement)",
+          "status": "waiting",
+          "event_trigger": null
+        },
+        {
+          "time": 190.0,
+          "position": [
+            -18,
+            0,
+            0
+          ],
+          "label": "At S001 (Order Rejected - Not Shipped)",
+          "status": "waiting",
+          "event_trigger": "Reject Order"
+        },
+        {
+          "time": 230.0,
+          "position": [
+            -18,
+            0,
+            0
+          ],
+          "label": "Order Rejected - Items Not Procured",
+          "status": "waiting",
+          "event_trigger": "Reject Order"
+        },
+        {
+          "time": 175.0,
+          "position": [
+            -18,
+            0,
+            0
+          ],
+          "label": "Order Rejected - Items Remain at Supplier",
+          "status": "waiting",
+          "event_trigger": null
+        },
+        {
+          "time": 180.0,
+          "position": [
+            -18,
+            0,
+            0
+          ],
+          "label": "Order Rejected - Items Remain at Supplier",
+          "status": "waiting",
+          "event_trigger": "Reject Order"
+        }
+      ]
+    },
+    {
+      "item_id": "I024",
+      "name": "Shipping Labels (Pack of 100)",
+      "quantity": 7,
+      "category": "Others",
+      "supplier_id": "S001",
+      "supplier_name": "S001",
+      "color": "#6b7280",
+      "keyframes": [
+        {
+          "time": 0.0,
+          "position": [
+            -18,
+            0,
+            0
+          ],
+          "label": "At S001 (Order will be rejected - no procurement)",
+          "status": "waiting",
+          "event_trigger": null
+        },
+        {
+          "time": 200.0,
+          "position": [
+            -18,
+            0,
+            0
+          ],
+          "label": "At S001 (Order Rejected - Not Shipped)",
+          "status": "waiting",
+          "event_trigger": "Reject Order"
+        },
+        {
+          "time": 240.0,
+          "position": [
+            -18,
+            0,
+            0
+          ],
+          "label": "Order Rejected - Items Not Procured",
+          "status": "waiting",
+          "event_trigger": "Reject Order"
+        },
+        {
+          "time": 175.0,
+          "position": [
+            -18,
+            0,
+            0
+          ],
+          "label": "Order Rejected - Items Remain at Supplier",
+          "status": "waiting",
+          "event_trigger": null
+        },
+        {
+          "time": 180.0,
+          "position": [
+            -18,
+            0,
+            0
+          ],
+          "label": "Order Rejected - Items Remain at Supplier",
+          "status": "waiting",
+          "event_trigger": "Reject Order"
+        }
+      ]
+    },
+    {
+      "item_id": "I018",
+      "name": "Desk Mat",
+      "quantity": 1,
+      "category": "Others",
+      "supplier_id": "S001",
+      "supplier_name": "S001",
+      "color": "#6b7280",
+      "keyframes": [
+        {
+          "time": 0.0,
+          "position": [
+            -18,
+            0,
+            0
+          ],
+          "label": "At S001 (Order will be rejected - no procurement)",
+          "status": "waiting",
+          "event_trigger": null
+        },
+        {
+          "time": 210.0,
+          "position": [
+            -18,
+            0,
+            0
+          ],
+          "label": "At S001 (Order Rejected - Not Shipped)",
+          "status": "waiting",
+          "event_trigger": "Reject Order"
+        },
+        {
+          "time": 250.0,
+          "position": [
+            -18,
+            0,
+            0
+          ],
+          "label": "Order Rejected - Items Not Procured",
+          "status": "waiting",
+          "event_trigger": "Reject Order"
+        },
+        {
+          "time": 175.0,
+          "position": [
+            -18,
+            0,
+            0
+          ],
+          "label": "Order Rejected - Items Remain at Supplier",
+          "status": "waiting",
+          "event_trigger": null
+        },
+        {
+          "time": 180.0,
+          "position": [
+            -18,
+            0,
+            0
+          ],
+          "label": "Order Rejected - Items Remain at Supplier",
+          "status": "waiting",
+          "event_trigger": "Reject Order"
+        }
+      ]
+    },
+    {
+      "item_id": "I013",
+      "name": "Filing Cabinet",
+      "quantity": 2,
+      "category": "Others",
+      "supplier_id": "S001",
+      "supplier_name": "S001",
+      "color": "#6b7280",
+      "keyframes": [
+        {
+          "time": 0.0,
+          "position": [
+            -18,
+            0,
+            0
+          ],
+          "label": "At S001 (Order will be rejected - no procurement)",
+          "status": "waiting",
+          "event_trigger": null
+        },
+        {
+          "time": 220.0,
+          "position": [
+            -18,
+            0,
+            0
+          ],
+          "label": "At S001 (Order Rejected - Not Shipped)",
+          "status": "waiting",
+          "event_trigger": "Reject Order"
+        },
+        {
+          "time": 260.0,
+          "position": [
+            -18,
+            0,
+            0
+          ],
+          "label": "Order Rejected - Items Not Procured",
+          "status": "waiting",
+          "event_trigger": "Reject Order"
+        },
+        {
+          "time": 175.0,
+          "position": [
+            -18,
+            0,
+            0
+          ],
+          "label": "Order Rejected - Items Remain at Supplier",
+          "status": "waiting",
+          "event_trigger": null
+        },
+        {
+          "time": 180.0,
+          "position": [
+            -18,
+            0,
+            0
+          ],
+          "label": "Order Rejected - Items Remain at Supplier",
+          "status": "waiting",
+          "event_trigger": "Reject Order"
+        }
+      ]
+    }
+  ],
+  "supplier_locations": [
+    {
+      "supplier_id": "S007",
+      "label": "Asian",
+      "country": "Singapore",
+      "position": [
+        -32.0,
+        0,
+        10
+      ]
+    },
+    {
+      "supplier_id": "S014",
+      "label": "Coastal",
+      "country": "USA",
+      "position": [
+        0.0,
+        0,
+        10
+      ]
+    },
+    {
+      "supplier_id": "S008",
+      "label": "Metro",
+      "country": "USA",
+      "position": [
+        -32.0,
+        0,
+        -10
+      ]
+    }
+  ]
+}

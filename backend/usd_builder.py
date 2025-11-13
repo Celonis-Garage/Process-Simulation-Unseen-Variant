@@ -279,7 +279,10 @@ def generate_item_paths(
 ) -> List[Dict[str, Any]]:
     """
     Generate animation paths for items from suppliers to order sphere.
-    Items converge at warehouse if it exists, otherwise at order approval point.
+    Items are EVENT-DRIVEN:
+    - TRIGGER: "Approve Order" - items depart from suppliers
+    - ARRIVAL: "Generate Pick List" - items arrive at warehouse
+    - MERGE: "Pack Items" - items merge with order
     
     Args:
         items: List of item dictionaries
@@ -294,63 +297,127 @@ def generate_item_paths(
     """
     item_paths = []
     
-    # Check if warehouse and pack events exist in this order
+    # Check if key events exist in this order
     has_warehouse = 'Generate Pick List' in activity_positions
     has_pack = 'Pack Items' in activity_positions
     has_approve = 'Approve Order' in activity_positions
+    has_schedule = 'Schedule Order Fulfillment' in activity_positions
+    has_reject = 'Reject Order' in activity_positions
+    has_cancel = 'Cancel Order' in activity_positions
     
-    # Determine convergence point based on which events exist
-    if has_warehouse:
-        # Items converge at warehouse when order reaches there
-        convergence_event = 'Generate Pick List'
-        merge_event = 'Pack Items' if has_pack else 'Generate Pick List'
+    # ===================================================================
+    # EVENT-DRIVEN LOGIC: Define trigger, arrival, and merge events
+    # ===================================================================
+    
+    # SPECIAL CASE: Rejected or cancelled orders should NOT trigger item procurement
+    # Items stay at suppliers - no departure!
+    if has_reject or has_cancel:
+        # For rejected/cancelled orders, set trigger to a very late time (after rejection)
+        # This ensures items never depart from suppliers (correct business logic)
+        trigger_event = 'Reject Order' if has_reject else 'Cancel Order'
+        # Items will stay at suppliers since trigger happens after order is already rejected
+    # TRIGGER EVENT: When to start item procurement/shipping
     elif has_approve:
-        # Items converge after order approval if no warehouse
-        convergence_event = 'Approve Order'
-        merge_event = 'Approve Order'
+        trigger_event = 'Approve Order'  # Standard: approval triggers procurement
+    elif has_schedule:
+        trigger_event = 'Schedule Order Fulfillment'  # Fallback: scheduling triggers procurement
     else:
-        # Fallback to first event
-        convergence_event = keyframes[0]['event'] if keyframes else None
-        merge_event = convergence_event
+        # For orders without approval/schedule/rejection, use last meaningful event before completion
+        # This should be rare - most orders have approval or get rejected
+        trigger_event = keyframes[-1]['event'] if keyframes else None  # Last event (items won't depart)
     
-    # Find convergence and merge times from keyframes
-    convergence_time = 180.0  # Default
-    merge_time = 240.0  # Default
+    # ARRIVAL EVENT: When items must be at warehouse/destination
+    if has_reject or has_cancel:
+        # For rejected/cancelled orders, items never arrive (they never depart)
+        arrival_event = trigger_event  # Same as trigger (after rejection)
+    elif has_warehouse:
+        arrival_event = 'Generate Pick List'  # Items must arrive before picking
+    elif has_schedule:
+        arrival_event = 'Schedule Order Fulfillment'  # Items arrive during scheduling
+    elif has_approve:
+        arrival_event = 'Approve Order'  # Items arrive at approval (no warehouse)
+    else:
+        arrival_event = trigger_event  # Same as trigger if no other events
+    
+    # MERGE EVENT: When items physically join the order
+    if has_reject or has_cancel:
+        # For rejected/cancelled orders, items never merge (they never arrive)
+        merge_event = trigger_event  # Same as trigger (no merge happens)
+    elif has_pack:
+        merge_event = 'Pack Items'  # Standard: items packed into order
+    elif has_warehouse:
+        merge_event = 'Generate Pick List'  # Fallback: merge at picking
+    else:
+        merge_event = arrival_event  # Merge on arrival if no packing
+    
+    # ===================================================================
+    # Find event times from keyframes
+    # ===================================================================
+    
+    trigger_time = 0.0
+    arrival_time_base = 180.0  # Default fallback
+    merge_time = 240.0  # Default fallback
     
     for kf in keyframes:
-        if kf['event'] == convergence_event:
-            convergence_time = kf['time']
+        if kf['event'] == trigger_event:
+            trigger_time = kf['time']
+        if kf['event'] == arrival_event:
+            arrival_time_base = kf['time']
         if kf['event'] == merge_event:
             merge_time = kf['time']
     
-    # Get convergence and merge locations (where order sphere will be)
-    convergence_loc = activity_positions.get(convergence_event, {'x': 0, 'y': 0, 'z': 0})
-    merge_loc = activity_positions.get(merge_event, convergence_loc)
+    # Calculate transit duration based on events
+    # Transit time = time from trigger to arrival
+    transit_duration = max(40.0, arrival_time_base - trigger_time)  # Minimum 40s, or actual duration
     
-    for item in items:
+    # Get event locations
+    arrival_loc = activity_positions.get(arrival_event, {'x': 0, 'y': 0, 'z': 0})
+    merge_loc = activity_positions.get(merge_event, arrival_loc)
+    
+    # Label based on arrival type
+    arrival_label = 'Warehouse' if has_warehouse else 'Order Staging Area'
+    
+    # ===================================================================
+    # Create item paths - each item triggered by approval event
+    # ===================================================================
+    
+    for idx, item in enumerate(items):
         item_id = item.get('item_id', '')
         supplier_id = item_supplier_map.get(item_id, 'S001')
         
         # Get supplier location
-        supplier_loc = supplier_positions.get(supplier_id, {'x': -18, 'y': 0, 'z': 0, 'label': supplier_id, 'country': 'USA'})
+        supplier_loc = supplier_positions.get(supplier_id, {
+            'x': -18, 'y': 0, 'z': 0, 'label': supplier_id, 'country': 'USA'
+        })
         
         # Get item category for color
         item_row = items_df[items_df['item_id'] == item_id]
         category = item_row['category'].iloc[0] if len(item_row) > 0 else 'Others'
         color = CATEGORY_COLORS.get(category, CATEGORY_COLORS['Others'])
         
-        # Fixed transit time for all suppliers (so timing is consistent)
-        transit_duration = 40.0  # 40 seconds transit time for all
+        # Stagger departure slightly after trigger event (avoid visual overlap)
+        # Each item departs 10 seconds after the previous one
+        item_departure_offset = idx * 10  # 10 seconds between items
+        departure_time = trigger_time + item_departure_offset
         
-        # Stagger departure times - 15 seconds between each item for clear separation
-        item_offset = items.index(item) * 15  # 15 seconds between items
-        departure_time = max(0, convergence_time - transit_duration - 60 + item_offset)
-        arrival_time = departure_time + transit_duration
+        # Calculate individual arrival time
+        item_arrival_time = departure_time + transit_duration
         
-        # Label based on convergence type
-        convergence_label = 'Warehouse' if has_warehouse else 'Order Approval'
+        # Create item animation path with EVENT-BASED keyframes
+        # Customize labels for rejected/cancelled orders
+        is_rejected_order = has_reject or has_cancel
         
-        # Create item animation path
+        if is_rejected_order:
+            # For rejected orders, items stay at suppliers (no procurement)
+            waiting_label = f"At {supplier_loc.get('label', 'Supplier')} (Order will be rejected - no procurement)"
+            departure_label = f"At {supplier_loc.get('label', 'Supplier')} (Order Rejected - Not Shipped)"
+            arrival_label_text = "Order Rejected - Items Not Procured"
+        else:
+            # For normal orders, standard labels
+            waiting_label = f"At {supplier_loc.get('label', 'Supplier')} (Awaiting Order Approval)"
+            departure_label = f"Departing from {supplier_loc.get('label', 'Supplier')}"
+            arrival_label_text = f'Arrived at {arrival_label}'
+        
         item_path = {
             'item_id': item_id,
             'name': item.get('name', ''),
@@ -363,32 +430,37 @@ def generate_item_paths(
                 {
                     'time': 0.0,
                     'position': [supplier_loc['x'], 0, supplier_loc['z']],
-                    'label': f"At {supplier_loc.get('label', 'Supplier')}",
-                    'status': 'waiting'
+                    'label': waiting_label,
+                    'status': 'waiting',
+                    'event_trigger': None  # No event yet
                 },
                 {
                     'time': departure_time,
                     'position': [supplier_loc['x'], 0, supplier_loc['z']],
-                    'label': f"Departing from {supplier_loc.get('label', 'Supplier')}",
-                    'status': 'in_transit'
+                    'label': departure_label,
+                    'status': 'waiting' if is_rejected_order else 'in_transit',  # Stay 'waiting' for rejected orders
+                    'event_trigger': trigger_event  # TRIGGERED BY THIS EVENT
                 },
                 {
-                    'time': arrival_time,
-                    'position': [convergence_loc['x'], 0, convergence_loc['z']],
-                    'label': f'Arrived at {convergence_label}',
-                    'status': 'arrived'
+                    'time': item_arrival_time,
+                    'position': [supplier_loc['x'], 0, supplier_loc['z']] if is_rejected_order else [arrival_loc['x'], 0, arrival_loc['z']],
+                    'label': arrival_label_text,
+                    'status': 'waiting' if is_rejected_order else 'arrived',  # Stay at supplier for rejected orders
+                    'event_trigger': arrival_event  # SYNCED WITH THIS EVENT
                 },
                 {
-                    'time': merge_time - 2,
-                    'position': [convergence_loc['x'], 0, convergence_loc['z']],
-                    'label': 'Moving to Order',
-                    'status': 'ready'
+                    'time': merge_time - 5,
+                    'position': [supplier_loc['x'], 0, supplier_loc['z']] if is_rejected_order else [arrival_loc['x'], 0, arrival_loc['z']],
+                    'label': 'Order Rejected - Items Remain at Supplier' if is_rejected_order else f'Ready for Packing (Waiting at {arrival_label})',
+                    'status': 'waiting',
+                    'event_trigger': None
                 },
                 {
                     'time': merge_time,
-                    'position': [merge_loc['x'], 0, merge_loc['z']],
-                    'label': 'Merged with Order',
-                    'status': 'merged'
+                    'position': [supplier_loc['x'], 0, supplier_loc['z']] if is_rejected_order else [merge_loc['x'], 0, merge_loc['z']],
+                    'label': 'Order Rejected - Items Remain at Supplier' if is_rejected_order else 'Merged with Order',
+                    'status': 'waiting' if is_rejected_order else 'merged',
+                    'event_trigger': merge_event  # MERGED DURING THIS EVENT
                 }
             ]
         }
@@ -396,6 +468,50 @@ def generate_item_paths(
         item_paths.append(item_path)
     
     return item_paths
+
+
+def assign_users_to_events(events: List[Dict[str, Any]], available_users: List[str]) -> Dict[str, str]:
+    """
+    Assign users to events based on event functionality/station.
+    Maps specific event types to appropriate users based on typical O2C roles.
+    
+    Returns a dictionary mapping event names to user IDs.
+    """
+    # Define event-to-role mapping based on typical O2C process functions
+    event_role_mapping = {
+        'Receive Customer Order': 'reception',  # Customer service/sales
+        'Validate Customer Order': 'validation',  # Order processor
+        'Perform Credit Check': 'finance',  # Finance team
+        'Approve Order': 'manager',  # Management
+        'Reject Order': 'manager',  # Management decision
+        'Schedule Order Fulfillment': 'planning',  # Supply chain planner
+        'Generate Pick List': 'warehouse',  # Warehouse staff
+        'Pack Items': 'warehouse',  # Packing/warehouse
+        'Generate Shipping Label': 'shipping',  # Shipping coordinator
+        'Ship Order': 'shipping',  # Shipping team
+        'Generate Invoice': 'accounting',  # Billing/accounting
+        'Receive Payment': 'accounting',  # Accounts receivable
+        'Apply Discount': 'sales',  # Sales/marketing
+        'Process Return Request': 'customer_service',  # Customer service
+        'Cancel Order': 'manager',  # Management decision
+        'Close Order': 'accounting'  # Final accounting
+    }
+    
+    # Create consistent role-to-user mapping
+    role_to_user = {}
+    event_to_user = {}
+    
+    for event in events:
+        event_name = event.get('event_name', event.get('name', ''))
+        role = event_role_mapping.get(event_name, 'generic')
+        
+        # Assign user to role consistently (same role always gets same user)
+        if role not in role_to_user:
+            role_to_user[role] = available_users[len(role_to_user) % len(available_users)] if available_users else 'System'
+        
+        event_to_user[event_name] = role_to_user[role]
+    
+    return event_to_user
 
 
 def generate_gltf_for_case(
@@ -495,7 +611,10 @@ def generate_gltf_for_case(
             min_time = datetime.now()
             max_time = datetime.now()
         
-        # Second pass: create keyframes with correct time offsets
+        # Assign users to events based on event type/functionality
+        event_to_user = assign_users_to_events(events, users)
+        
+        # Second pass: create keyframes with correct time offsets and user assignment
         keyframes = []
         for pe in parsed_events:
             time_offset = (pe['dt'] - min_time).total_seconds()
@@ -505,19 +624,61 @@ def generate_gltf_for_case(
                 'position': [pe['loc']['x'], pe['loc']['y'], pe['loc']['z']],
                 'event': pe['name'],
                 'label': pe['loc']['label'],
-                'timestamp': pe['dt'].isoformat()
+                'timestamp': pe['dt'].isoformat(),
+                'user': event_to_user.get(pe['name'], 'System')  # Add user assignment
             })
         
         # Sort keyframes by time to ensure chronological order
         keyframes.sort(key=lambda kf: kf['time'])
         
-        # Calculate total duration
-        total_duration = (max_time - min_time).total_seconds() if max_time and min_time else 0
+        # ===================================================================
+        # NORMALIZE POST-COMPLETION EVENTS (Apply Discount, Process Return, etc.)
+        # These events happen days/weeks later in real data, but for visualization
+        # we need to show them shortly after the main flow completes
+        # ===================================================================
+        
+        # Define post-completion events that should be normalized
+        post_completion_events = ['Apply Discount', 'Process Return Request', 'Receive Payment', 'Close Order', 'Cancel Order']
+        
+        # Find the last "main flow" event (usually Generate Invoice or Ship Order)
+        main_flow_events = [
+            'Receive Customer Order', 'Validate Customer Order', 'Perform Credit Check',
+            'Approve Order', 'Reject Order', 'Schedule Order Fulfillment', 'Generate Pick List',
+            'Pack Items', 'Generate Shipping Label', 'Ship Order', 'Generate Invoice'
+        ]
+        
+        # Find last main flow event time
+        last_main_flow_time = 0
+        for kf in keyframes:
+            if kf['event'] in main_flow_events:
+                last_main_flow_time = max(last_main_flow_time, kf['time'])
+        
+        # Normalize post-completion events to appear 60-120 seconds after main flow
+        post_event_offset = 60  # Start 60 seconds after last main flow event
+        for kf in keyframes:
+            if kf['event'] in post_completion_events:
+                # If this event has a huge time gap (more than 10 minutes after main flow),
+                # normalize it to appear shortly after
+                if kf['time'] > last_main_flow_time + 600:  # 10 minutes threshold
+                    original_time = kf['time']
+                    kf['time'] = last_main_flow_time + post_event_offset
+                    post_event_offset += 60  # Next post-event 60 seconds later
+                    logger.info(f"Normalized '{kf['event']}' from {original_time:.1f}s to {kf['time']:.1f}s for visualization")
+        
+        # Re-sort after normalization
+        keyframes.sort(key=lambda kf: kf['time'])
+        
+        # Calculate total duration (after normalization)
+        total_duration = keyframes[-1]['time'] if keyframes else 0
         
         # Load items dataframe and get item-supplier mapping
         data_dir = export_dir.parent.parent / 'data'
         items_csv_path = data_dir / 'items.csv'
-        items_df = pd.read_csv(items_csv_path) if items_csv_path.exists() else pd.DataFrame()
+        if items_csv_path.exists():
+            items_df = pd.read_csv(items_csv_path)
+        else:
+            # Create empty DataFrame with expected columns
+            items_df = pd.DataFrame(columns=['item_id', 'name', 'category', 'unit_price', 'weight_kg', 'stock_status'])
         
         item_supplier_map = get_item_supplier_mapping(case_id, data_dir)
         

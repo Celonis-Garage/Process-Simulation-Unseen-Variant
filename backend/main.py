@@ -97,6 +97,23 @@ class SimulationResponse(BaseModel):
     confidence: float
     summary: str
 
+class NarrationRequest(BaseModel):
+    event_name: str
+    timestamp: str
+    case_id: str
+    order_value: Optional[float] = 0.0
+    order_status: Optional[str] = "Processing"
+    user: Optional[str] = "System"  # Single user who performed this event
+    items: Optional[List[Dict[str, Any]]] = []  # Only items relevant to this event
+    suppliers: Optional[List[str]] = []  # Only suppliers relevant to this event
+    variant_id: Optional[str] = None
+    current_time: Optional[float] = 0.0
+
+class NarrationResponse(BaseModel):
+    narration: str
+    event_name: str
+    timestamp: str
+
 # Initialize
 simulation_engine = SimulationEngine()
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -574,44 +591,71 @@ async def simulate_process(request: SimulationRequest):
 @app.get("/api/orders")
 async def get_available_orders():
     """
-    Get list of all available orders with metadata.
+    Get list of sample orders (1 per variant) with metadata.
+    Returns 8 sample orders representing each of the 8 process variants.
     
     Returns:
-        List of orders with case_id, event_count, item_count, and KPIs
+        List of sample orders with case_id, event_count, item_count, KPIs, and variant info
     """
     try:
         data_dir = backend_dir.parent / 'data'  # Data is in parent directory
         
-        # Load order data
+        # Load sample orders (1 per variant)
+        df_sample_orders = pd.read_csv(data_dir / 'variant_sample_orders.csv')
         df_kpis = pd.read_csv(data_dir / 'order_kpis.csv')
         df_order_items = pd.read_csv(data_dir / 'order_items.csv')
         
-        # Get event counts per order
-        event_counts = {}
-        for case_id in df_kpis['order_id']:
-            events_df = data_loader.df_events[data_loader.df_events['order_id'] == case_id]
-            event_counts[case_id] = len(events_df)
+        # Load variant contexts for descriptions
+        import json
+        with open(data_dir / 'variant_contexts.json', 'r') as f:
+            variant_contexts = json.load(f)
         
-        # Build order list
+        # Create variant lookup
+        variant_info = {v['variant_id']: v for v in variant_contexts['variants']}
+        
+        # Build order list (only sample orders)
         orders = []
-        for _, row in df_kpis.iterrows():
-            order_id = row['order_id']
+        for _, sample_row in df_sample_orders.iterrows():
+            order_id = sample_row['sample_order_id']
+            variant_id = sample_row['variant_id']
+            
+            # Get KPIs for this order
+            kpi_row = df_kpis[df_kpis['order_id'] == order_id]
+            if kpi_row.empty:
+                continue
+            
+            kpi_row = kpi_row.iloc[0]
+            
+            # Get event count
+            events_df = data_loader.df_events[data_loader.df_events['order_id'] == order_id]
+            event_count = len(events_df)
+            
+            # Get item count
             items_count = len(df_order_items[df_order_items['order_id'] == order_id])
+            
+            # Get variant description
+            variant = variant_info.get(variant_id, {})
+            variant_name = ' → '.join(variant.get('event_sequence', []))[:80] + '...'  # Truncate long names
             
             orders.append({
                 'case_id': str(order_id),
-                'event_count': int(event_counts.get(order_id, 0)),
+                'variant_id': variant_id,
+                'variant_name': variant_name,
+                'variant_description': variant.get('context', '')[:200] + '...',  # Short description
+                'frequency_percentage': float(variant.get('frequency_percentage', 0)),
+                'event_count': int(event_count),
                 'item_count': int(items_count),
-                'on_time_delivery': float(row['on_time_delivery']),
-                'days_sales_outstanding': float(row['days_sales_outstanding']),
-                'order_accuracy': float(row['order_accuracy']),
+                'on_time_delivery': float(kpi_row['on_time_delivery']),
+                'days_sales_outstanding': float(kpi_row['days_sales_outstanding']),
+                'order_accuracy': float(kpi_row['order_accuracy']),
             })
         
-        logger.info(f"📋 Retrieved {len(orders)} available orders")
+        logger.info(f"📋 Retrieved {len(orders)} sample orders (1 per variant)")
         return {'orders': orders, 'total': len(orders)}
         
     except Exception as e:
         logger.error(f"❌ Error fetching orders: {str(e)}")
+        logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Error fetching orders: {str(e)}")
 
 @app.get("/api/sample")
@@ -771,4 +815,74 @@ async def get_session_info(session_id: str):
     except Exception as e:
         logger.error(f"Error getting session info: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/narration")
+async def generate_narration(request: NarrationRequest):
+    """
+    Generate real-time narration for a simulation event using LLM.
+    
+    This endpoint generates natural language commentary for the current event
+    in the 3D simulation, explaining what's happening, who's involved, and
+    what attributes are being processed.
+    """
+    try:
+        logger.info(f"Generating narration for event: {request.event_name}")
+        
+        # Check if LLM service is available
+        if llm_service is None:
+            # Fallback narration in bullet format
+            narration = (
+                f"• Action: {request.event_name}\n"
+                f"• User: {request.user}\n"
+                f"• Status: In Progress"
+            )
+            
+            return NarrationResponse(
+                narration=narration,
+                event_name=request.event_name,
+                timestamp=request.timestamp
+            )
+        
+        # Convert request to dictionary for LLM service
+        event_data = {
+            'event_name': request.event_name,
+            'timestamp': request.timestamp,
+            'case_id': request.case_id,
+            'order_value': request.order_value,
+            'order_status': request.order_status,
+            'user': request.user,  # Single user
+            'items': request.items,
+            'suppliers': request.suppliers,
+            'variant_id': request.variant_id,
+            'current_time': request.current_time
+        }
+        
+        # Generate narration using LLM
+        narration = llm_service.generate_event_narration(event_data)
+        
+        logger.info(f"✅ Narration generated: {narration[:100]}...")
+        
+        return NarrationResponse(
+            narration=narration,
+            event_name=request.event_name,
+            timestamp=request.timestamp
+        )
+        
+    except Exception as e:
+        logger.error(f"❌ Error generating narration: {str(e)}")
+        logger.error(traceback.format_exc())
+        
+        # Always provide a fallback narration to avoid breaking the UI
+        fallback_narration = (
+            f"• Action: {request.event_name}\n"
+            f"• By: {request.user}\n"
+            f"• Status: Processing"
+        )
+        
+        return NarrationResponse(
+            narration=fallback_narration,
+            event_name=request.event_name,
+            timestamp=request.timestamp
+        )
 

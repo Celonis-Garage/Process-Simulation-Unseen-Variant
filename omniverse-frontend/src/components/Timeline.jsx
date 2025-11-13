@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import './Timeline.css';
+import NarrationBox from './NarrationBox';
 
-function Timeline({ duration, currentTime, isPlaying, playbackSpeed = 1, onTimeChange, onPlayPause, onReset, onSpeedChange, keyframes }) {
+function Timeline({ duration, currentTime, isPlaying, playbackSpeed = 1, onTimeChange, onPlayPause, onReset, onSpeedChange, keyframes, sceneData }) {
   const [isDragging, setIsDragging] = useState(false);
   
   const speedOptions = [0.5, 1, 2, 4, 8];
   
-  // Scale keyframe times to match 60-second duration
+  // Scale keyframe times to match display duration (90 seconds)
   const originalDuration = keyframes && keyframes.length > 0 ? 
     keyframes[keyframes.length - 1].time : duration;
   const timeScale = originalDuration / duration;
@@ -55,6 +56,13 @@ function Timeline({ duration, currentTime, isPlaying, playbackSpeed = 1, onTimeC
 
   return (
     <div className="timeline-container">
+      {/* Live Narration Box */}
+      <NarrationBox 
+        currentEvent={currentEvent} 
+        sceneData={sceneData}
+        currentTime={currentTime}
+      />
+
       <div className="timeline-header">
         <div className="current-event">
           {currentEvent && (

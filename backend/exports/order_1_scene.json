@@ -1,56 +1,56 @@
 {
-  "case_id": "order_43",
+  "case_id": "order_1",
   "order_info": {
-    "order_value": 362.87,
+    "order_value": 1079.89,
     "order_status": "Approved",
     "num_items": 4,
-    "total_quantity": 13
+    "total_quantity": 11
   },
   "kpis": {
-    "on_time_delivery": 81.38,
-    "days_sales_outstanding": 39.73,
-    "order_accuracy": 92.48,
-    "invoice_accuracy": 85.97,
-    "avg_cost_delivery": 22.63
+    "on_time_delivery": 84.5,
+    "days_sales_outstanding": 36.26,
+    "order_accuracy": 89.85,
+    "invoice_accuracy": 87.59,
+    "avg_cost_delivery": 22.92
   },
   "entities": {
     "users": [
       "U001",
+      "U004",
       "U006",
-      "U002",
-      "U005"
+      "U002"
     ],
     "items": [
       {
-        "id": "I021",
-        "name": "Drawer Organizer",
+        "id": "I008",
+        "name": "Keyboard (Mechanical)",
         "quantity": 2,
-        "line_total": 37.98
+        "line_total": 179.98
       },
       {
-        "id": "I017",
-        "name": "Cable Organizer",
-        "quantity": 1,
-        "line_total": 12.99
+        "id": "I013",
+        "name": "Filing Cabinet",
+        "quantity": 2,
+        "line_total": 299.98
       },
       {
-        "id": "I001",
-        "name": "Ballpoint Pen (Pack of 12)",
-        "quantity": 4,
-        "line_total": 35.96
+        "id": "I015",
+        "name": "Desk Lamp (LED)",
+        "quantity": 5,
+        "line_total": 199.95
       },
       {
-        "id": "I022",
-        "name": "Printer Cartridge (Black)",
-        "quantity": 6,
-        "line_total": 275.94
+        "id": "I011",
+        "name": "Office Chair",
+        "quantity": 2,
+        "line_total": 399.98
       }
     ],
     "suppliers": [
-      "S012",
-      "S004",
-      "S006",
-      "S006"
+      "S016",
+      "S001",
+      "S007",
+      "S001"
     ]
   },
   "animation": {
@@ -65,7 +65,8 @@
         ],
         "event": "Receive Customer Order",
         "label": "Receive Order",
-        "timestamp": "2025-11-01T17:50:15.348555"
+        "timestamp": "2024-10-02T07:55:15.348555",
+        "user": "U001"
       },
       {
         "time": 60.0,
@@ -76,7 +77,8 @@
         ],
         "event": "Validate Customer Order",
         "label": "Validate",
-        "timestamp": "2025-11-01T17:51:15.348555"
+        "timestamp": "2024-10-02T07:56:15.348555",
+        "user": "U004"
       },
       {
         "time": 120.0,
@@ -87,7 +89,8 @@
         ],
         "event": "Perform Credit Check",
         "label": "Credit Check",
-        "timestamp": "2025-11-01T17:52:15.348555"
+        "timestamp": "2024-10-02T07:57:15.348555",
+        "user": "U006"
       },
       {
         "time": 180.0,
@@ -98,7 +101,8 @@
         ],
         "event": "Approve Order",
         "label": "Approve",
-        "timestamp": "2025-11-01T17:53:15.348555"
+        "timestamp": "2024-10-02T07:58:15.348555",
+        "user": "U002"
       },
       {
         "time": 240.0,
@@ -109,7 +113,8 @@
         ],
         "event": "Schedule Order Fulfillment",
         "label": "Schedule",
-        "timestamp": "2025-11-01T17:54:15.348555"
+        "timestamp": "2024-10-02T07:59:15.348555",
+        "user": "U001"
       },
       {
         "time": 300.0,
@@ -120,7 +125,8 @@
         ],
         "event": "Generate Pick List",
         "label": "Pick List",
-        "timestamp": "2025-11-01T17:55:15.348555"
+        "timestamp": "2024-10-02T08:00:15.348555",
+        "user": "U004"
       },
       {
         "time": 420.0,
@@ -131,7 +137,8 @@
         ],
         "event": "Pack Items",
         "label": "Pack",
-        "timestamp": "2025-11-01T17:57:15.348555"
+        "timestamp": "2024-10-02T08:02:15.348555",
+        "user": "U004"
       },
       {
         "time": 480.0,
@@ -142,7 +149,8 @@
         ],
         "event": "Generate Shipping Label",
         "label": "Ship Label",
-        "timestamp": "2025-11-01T17:58:15.348555"
+        "timestamp": "2024-10-02T08:03:15.348555",
+        "user": "U006"
       },
       {
         "time": 540.0,
@@ -153,7 +161,8 @@
         ],
         "event": "Ship Order",
         "label": "Ship",
-        "timestamp": "2025-11-01T17:59:15.348555"
+        "timestamp": "2024-10-02T08:04:15.348555",
+        "user": "U006"
       },
       {
         "time": 660.0,
@@ -164,7 +173,8 @@
         ],
         "event": "Generate Invoice",
         "label": "Invoice",
-        "timestamp": "2025-11-01T18:01:15.348555"
+        "timestamp": "2024-10-02T08:06:15.348555",
+        "user": "U002"
       }
     ]
   },
@@ -272,13 +282,145 @@
   ],
   "item_paths": [
     {
-      "item_id": "I021",
-      "name": "Drawer Organizer",
+      "item_id": "I008",
+      "name": "Keyboard (Mechanical)",
       "quantity": 2,
-      "category": "Storage",
-      "supplier_id": "S012",
-      "supplier_name": "BulkBuy",
-      "color": "#ec4899",
+      "category": "Electronics",
+      "supplier_id": "S016",
+      "supplier_name": "SmartSource",
+      "color": "#3b82f6",
+      "keyframes": [
+        {
+          "time": 0.0,
+          "position": [
+            -32.0,
+            0,
+            10
+          ],
+          "label": "At SmartSource (Awaiting Order Approval)",
+          "status": "waiting",
+          "event_trigger": null
+        },
+        {
+          "time": 180.0,
+          "position": [
+            -32.0,
+            0,
+            10
+          ],
+          "label": "Departing from SmartSource",
+          "status": "in_transit",
+          "event_trigger": "Approve Order"
+        },
+        {
+          "time": 300.0,
+          "position": [
+            4,
+            0,
+            0
+          ],
+          "label": "Arrived at Warehouse",
+          "status": "arrived",
+          "event_trigger": "Generate Pick List"
+        },
+        {
+          "time": 415.0,
+          "position": [
+            4,
+            0,
+            0
+          ],
+          "label": "Ready for Packing (Waiting at Warehouse)",
+          "status": "waiting",
+          "event_trigger": null
+        },
+        {
+          "time": 420.0,
+          "position": [
+            12,
+            0,
+            0
+          ],
+          "label": "Merged with Order",
+          "status": "merged",
+          "event_trigger": "Pack Items"
+        }
+      ]
+    },
+    {
+      "item_id": "I013",
+      "name": "Filing Cabinet",
+      "quantity": 2,
+      "category": "Furniture",
+      "supplier_id": "S001",
+      "supplier_name": "Global",
+      "color": "#f59e0b",
+      "keyframes": [
+        {
+          "time": 0.0,
+          "position": [
+            0.0,
+            0,
+            10
+          ],
+          "label": "At Global (Awaiting Order Approval)",
+          "status": "waiting",
+          "event_trigger": null
+        },
+        {
+          "time": 190.0,
+          "position": [
+            0.0,
+            0,
+            10
+          ],
+          "label": "Departing from Global",
+          "status": "in_transit",
+          "event_trigger": "Approve Order"
+        },
+        {
+          "time": 310.0,
+          "position": [
+            4,
+            0,
+            0
+          ],
+          "label": "Arrived at Warehouse",
+          "status": "arrived",
+          "event_trigger": "Generate Pick List"
+        },
+        {
+          "time": 415.0,
+          "position": [
+            4,
+            0,
+            0
+          ],
+          "label": "Ready for Packing (Waiting at Warehouse)",
+          "status": "waiting",
+          "event_trigger": null
+        },
+        {
+          "time": 420.0,
+          "position": [
+            12,
+            0,
+            0
+          ],
+          "label": "Merged with Order",
+          "status": "merged",
+          "event_trigger": "Pack Items"
+        }
+      ]
+    },
+    {
+      "item_id": "I015",
+      "name": "Desk Lamp (LED)",
+      "quantity": 5,
+      "category": "Accessories",
+      "supplier_id": "S007",
+      "supplier_name": "Asian",
+      "color": "#06b6d4",
       "keyframes": [
         {
           "time": 0.0,
@@ -287,8 +429,9 @@
             0,
             -10
           ],
-          "label": "At BulkBuy",
-          "status": "waiting"
+          "label": "At Asian (Awaiting Order Approval)",
+          "status": "waiting",
+          "event_trigger": null
         },
         {
           "time": 200.0,
@@ -297,28 +440,31 @@
             0,
             -10
           ],
-          "label": "Departing from BulkBuy",
-          "status": "in_transit"
+          "label": "Departing from Asian",
+          "status": "in_transit",
+          "event_trigger": "Approve Order"
         },
         {
-          "time": 240.0,
+          "time": 320.0,
           "position": [
             4,
             0,
             0
           ],
           "label": "Arrived at Warehouse",
-          "status": "arrived"
+          "status": "arrived",
+          "event_trigger": "Generate Pick List"
         },
         {
-          "time": 418.0,
+          "time": 415.0,
           "position": [
             4,
             0,
             0
           ],
-          "label": "Moving to Order",
-          "status": "ready"
+          "label": "Ready for Packing (Waiting at Warehouse)",
+          "status": "waiting",
+          "event_trigger": null
         },
         {
           "time": 420.0,
@@ -328,79 +474,19 @@
             0
           ],
           "label": "Merged with Order",
-          "status": "merged"
+          "status": "merged",
+          "event_trigger": "Pack Items"
         }
       ]
     },
     {
-      "item_id": "I017",
-      "name": "Cable Organizer",
-      "quantity": 1,
-      "category": "Accessories",
-      "supplier_id": "S004",
-      "supplier_name": "Pacific",
-      "color": "#06b6d4",
-      "keyframes": [
-        {
-          "time": 0.0,
-          "position": [
-            -32.0,
-            0,
-            10
-          ],
-          "label": "At Pacific",
-          "status": "waiting"
-        },
-        {
-          "time": 215.0,
-          "position": [
-            -32.0,
-            0,
-            10
-          ],
-          "label": "Departing from Pacific",
-          "status": "in_transit"
-        },
-        {
-          "time": 255.0,
-          "position": [
-            4,
-            0,
-            0
-          ],
-          "label": "Arrived at Warehouse",
-          "status": "arrived"
-        },
-        {
-          "time": 418.0,
-          "position": [
-            4,
-            0,
-            0
-          ],
-          "label": "Moving to Order",
-          "status": "ready"
-        },
-        {
-          "time": 420.0,
-          "position": [
-            12,
-            0,
-            0
-          ],
-          "label": "Merged with Order",
-          "status": "merged"
-        }
-      ]
-    },
-    {
-      "item_id": "I001",
-      "name": "Ballpoint Pen (Pack of 12)",
-      "quantity": 4,
-      "category": "Office Supplies",
-      "supplier_id": "S006",
-      "supplier_name": "National",
-      "color": "#10b981",
+      "item_id": "I011",
+      "name": "Office Chair",
+      "quantity": 2,
+      "category": "Furniture",
+      "supplier_id": "S001",
+      "supplier_name": "Global",
+      "color": "#f59e0b",
       "keyframes": [
         {
           "time": 0.0,
@@ -409,38 +495,42 @@
             0,
             10
           ],
-          "label": "At National",
-          "status": "waiting"
+          "label": "At Global (Awaiting Order Approval)",
+          "status": "waiting",
+          "event_trigger": null
         },
         {
-          "time": 230.0,
+          "time": 210.0,
           "position": [
             0.0,
             0,
             10
           ],
-          "label": "Departing from National",
-          "status": "in_transit"
+          "label": "Departing from Global",
+          "status": "in_transit",
+          "event_trigger": "Approve Order"
         },
         {
-          "time": 270.0,
+          "time": 330.0,
           "position": [
             4,
             0,
             0
           ],
           "label": "Arrived at Warehouse",
-          "status": "arrived"
+          "status": "arrived",
+          "event_trigger": "Generate Pick List"
         },
         {
-          "time": 418.0,
+          "time": 415.0,
           "position": [
             4,
             0,
             0
           ],
-          "label": "Moving to Order",
-          "status": "ready"
+          "label": "Ready for Packing (Waiting at Warehouse)",
+          "status": "waiting",
+          "event_trigger": null
         },
         {
           "time": 420.0,
@@ -450,77 +540,17 @@
             0
           ],
           "label": "Merged with Order",
-          "status": "merged"
-        }
-      ]
-    },
-    {
-      "item_id": "I022",
-      "name": "Printer Cartridge (Black)",
-      "quantity": 6,
-      "category": "Printing",
-      "supplier_id": "S006",
-      "supplier_name": "National",
-      "color": "#8b5cf6",
-      "keyframes": [
-        {
-          "time": 0.0,
-          "position": [
-            0.0,
-            0,
-            10
-          ],
-          "label": "At National",
-          "status": "waiting"
-        },
-        {
-          "time": 245.0,
-          "position": [
-            0.0,
-            0,
-            10
-          ],
-          "label": "Departing from National",
-          "status": "in_transit"
-        },
-        {
-          "time": 285.0,
-          "position": [
-            4,
-            0,
-            0
-          ],
-          "label": "Arrived at Warehouse",
-          "status": "arrived"
-        },
-        {
-          "time": 418.0,
-          "position": [
-            4,
-            0,
-            0
-          ],
-          "label": "Moving to Order",
-          "status": "ready"
-        },
-        {
-          "time": 420.0,
-          "position": [
-            12,
-            0,
-            0
-          ],
-          "label": "Merged with Order",
-          "status": "merged"
+          "status": "merged",
+          "event_trigger": "Pack Items"
         }
       ]
     }
   ],
   "supplier_locations": [
     {
-      "supplier_id": "S004",
-      "label": "Pacific",
-      "country": "China",
+      "supplier_id": "S016",
+      "label": "SmartSource",
+      "country": "UK",
       "position": [
         -32.0,
         0,
@@ -528,8 +558,8 @@
       ]
     },
     {
-      "supplier_id": "S006",
-      "label": "National",
+      "supplier_id": "S001",
+      "label": "Global",
       "country": "USA",
       "position": [
         0.0,
@@ -538,9 +568,9 @@
       ]
     },
     {
-      "supplier_id": "S012",
-      "label": "BulkBuy",
-      "country": "USA",
+      "supplier_id": "S007",
+      "label": "Asian",
+      "country": "Singapore",
       "position": [
         -32.0,
         0,
