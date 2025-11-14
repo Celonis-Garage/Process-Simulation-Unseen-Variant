@@ -293,6 +293,10 @@ export default function App() {
   const [isSimulating, setIsSimulating] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
   
+  // Panel collapse states for maximizing 3D visualization
+  const [isPromptPanelCollapsed, setIsPromptPanelCollapsed] = useState(false);
+  const [isEventLogMinimized, setIsEventLogMinimized] = useState(false);
+  
   // History for undo/redo functionality
   const [history, setHistory] = useState<Array<{
     steps: ProcessStep[];
@@ -853,9 +857,10 @@ export default function App() {
     }
   };
   
-  // Keyboard shortcuts for undo/redo
+  // Keyboard shortcuts for undo/redo and panel toggles
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Undo/Redo shortcuts
       if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
         e.preventDefault();
         handleUndo();
@@ -865,6 +870,14 @@ export default function App() {
       } else if ((e.ctrlKey || e.metaKey) && e.key === 'y') {
         e.preventDefault();
         handleRedo();
+      }
+      // Panel toggle shortcuts (when not typing in input fields)
+      else if (e.key === '[' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        setIsPromptPanelCollapsed(prev => !prev);
+      } else if (e.key === ']' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        setIsEventLogMinimized(prev => !prev);
       }
     };
     
@@ -1329,23 +1342,42 @@ export default function App() {
           </div>
         </div>
         
-        <ResizablePanelGroup direction="vertical" className="flex-1">
+        <ResizablePanelGroup 
+          direction="vertical" 
+          className="flex-1"
+          key={`vertical-${isEventLogMinimized}`}
+        >
         {/* Main Workspace */}
-        <ResizablePanel defaultSize={70} minSize={40}>
-          <ResizablePanelGroup direction="horizontal">
+        <ResizablePanel 
+          defaultSize={isEventLogMinimized ? 95 : 78} 
+          minSize={40}
+        >
+          <ResizablePanelGroup 
+            direction="horizontal"
+            key={`horizontal-${isPromptPanelCollapsed}`}
+          >
             {/* Left Panel - Prompt Workspace */}
-            <ResizablePanel defaultSize={35} minSize={25} maxSize={50}>
+            <ResizablePanel 
+              defaultSize={isPromptPanelCollapsed ? 3 : 25} 
+              minSize={isPromptPanelCollapsed ? 3 : 20} 
+              maxSize={isPromptPanelCollapsed ? 3 : 40}
+            >
               <PromptPanel 
                 messages={messages}
                 onPromptSubmit={handlePromptSubmit}
                 isProcessEmpty={steps.filter(s => s.id !== 'start' && s.id !== 'end').length === 0}
+                isCollapsed={isPromptPanelCollapsed}
+                onToggleCollapse={() => setIsPromptPanelCollapsed(!isPromptPanelCollapsed)}
               />
             </ResizablePanel>
             
-            <ResizableHandle withHandle />
+            {!isPromptPanelCollapsed && <ResizableHandle withHandle />}
             
             {/* Right Panel - Process Explorer */}
-            <ResizablePanel defaultSize={65} minSize={50}>
+            <ResizablePanel 
+              defaultSize={isPromptPanelCollapsed ? 97 : 75} 
+              minSize={60}
+            >
               <ProcessExplorer
                 steps={steps}
                 edges={edges}
@@ -1358,13 +1390,19 @@ export default function App() {
           </ResizablePanelGroup>
         </ResizablePanel>
 
-        <ResizableHandle withHandle />
+        {!isEventLogMinimized && <ResizableHandle withHandle />}
 
         {/* Bottom Panel - Event Log */}
-        <ResizablePanel defaultSize={30} minSize={20} maxSize={50}>
+        <ResizablePanel 
+          defaultSize={isEventLogMinimized ? 5 : 22} 
+          minSize={isEventLogMinimized ? 5 : 15} 
+          maxSize={isEventLogMinimized ? 5 : 40}
+        >
           <EventLogPanel
             eventLogs={eventLogs}
             onSimulate={handleSimulate}
+            isMinimized={isEventLogMinimized}
+            onToggleMinimize={() => setIsEventLogMinimized(!isEventLogMinimized)}
           />
         </ResizablePanel>
       </ResizablePanelGroup>
@@ -1399,7 +1437,7 @@ export default function App() {
     <div className="flex flex-col h-screen bg-gray-50">
       <TopBar variantName={variantName} />
       
-      {/* Control Bar with Undo/Redo/Reset */}
+      {/* Control Bar with Undo/Redo/Reset and Panel Controls */}
       <div className="border-b border-gray-200 bg-white px-4 py-2 flex items-center gap-2">
         <div className="flex items-center gap-2">
           <button
@@ -1432,30 +1470,83 @@ export default function App() {
             <span className="text-base">🔄</span>
             <span>Reset</span>
           </button>
+
+          <div className="h-4 w-px bg-gray-300 mx-1"></div>
+
+          {/* Panel toggle buttons */}
+          <button
+            onClick={() => setIsPromptPanelCollapsed(!isPromptPanelCollapsed)}
+            className={`px-3 py-1.5 text-xs rounded transition-colors flex items-center gap-1.5 ${
+              isPromptPanelCollapsed 
+                ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' 
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+            title="Toggle Prompt Panel (Ctrl+[)"
+          >
+            <span>{isPromptPanelCollapsed ? '▶' : '◀'}</span>
+            <span>Prompt</span>
+          </button>
+
+          <button
+            onClick={() => setIsEventLogMinimized(!isEventLogMinimized)}
+            className={`px-3 py-1.5 text-xs rounded transition-colors flex items-center gap-1.5 ${
+              isEventLogMinimized 
+                ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' 
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+            title="Toggle Event Log Panel (Ctrl+])"
+          >
+            <span>{isEventLogMinimized ? '▲' : '▼'}</span>
+            <span>Event Log</span>
+          </button>
         </div>
         
-        <div className="ml-auto text-xs text-gray-500">
-          {historyIndex >= 0 && `History: ${historyIndex + 1}/${history.length}`}
+        <div className="ml-auto flex items-center gap-3">
+          <span className="text-xs text-gray-500">
+            {historyIndex >= 0 && `History: ${historyIndex + 1}/${history.length}`}
+          </span>
+          <span className="text-xs text-gray-400">
+            💡 Tip: Use Ctrl+[ and Ctrl+] to toggle panels
+          </span>
         </div>
       </div>
       
-      <ResizablePanelGroup direction="vertical" className="flex-1">
+      <ResizablePanelGroup 
+        direction="vertical" 
+        className="flex-1"
+        key={`vertical-${isEventLogMinimized}`}
+      >
         {/* Main Workspace */}
-        <ResizablePanel defaultSize={70} minSize={40}>
-          <ResizablePanelGroup direction="horizontal">
+        <ResizablePanel 
+          defaultSize={isEventLogMinimized ? 95 : 78} 
+          minSize={40}
+        >
+          <ResizablePanelGroup 
+            direction="horizontal"
+            key={`horizontal-${isPromptPanelCollapsed}`}
+          >
             {/* Left Panel - Prompt Workspace */}
-            <ResizablePanel defaultSize={35} minSize={25} maxSize={50}>
+            <ResizablePanel 
+              defaultSize={isPromptPanelCollapsed ? 3 : 25} 
+              minSize={isPromptPanelCollapsed ? 3 : 20} 
+              maxSize={isPromptPanelCollapsed ? 3 : 40}
+            >
               <PromptPanel 
                 messages={messages}
                 onPromptSubmit={handlePromptSubmit}
                 isProcessEmpty={steps.filter(s => s.id !== 'start' && s.id !== 'end').length === 0}
+                isCollapsed={isPromptPanelCollapsed}
+                onToggleCollapse={() => setIsPromptPanelCollapsed(!isPromptPanelCollapsed)}
               />
             </ResizablePanel>
             
-            <ResizableHandle withHandle />
+            {!isPromptPanelCollapsed && <ResizableHandle withHandle />}
             
-            {/* Right Panel - Process Explorer */}
-            <ResizablePanel defaultSize={65} minSize={50}>
+            {/* Right Panel - Process Explorer (3D Visualization) */}
+            <ResizablePanel 
+              defaultSize={isPromptPanelCollapsed ? 97 : 75} 
+              minSize={60}
+            >
               <ProcessExplorer
                 steps={steps}
                 edges={edges}
@@ -1468,13 +1559,19 @@ export default function App() {
           </ResizablePanelGroup>
         </ResizablePanel>
 
-        <ResizableHandle withHandle />
+        {!isEventLogMinimized && <ResizableHandle withHandle />}
 
         {/* Bottom Panel - Event Log */}
-        <ResizablePanel defaultSize={30} minSize={20} maxSize={50}>
+        <ResizablePanel 
+          defaultSize={isEventLogMinimized ? 5 : 22} 
+          minSize={isEventLogMinimized ? 5 : 15} 
+          maxSize={isEventLogMinimized ? 5 : 40}
+        >
           <EventLogPanel
             eventLogs={eventLogs}
             onSimulate={handleSimulate}
+            isMinimized={isEventLogMinimized}
+            onToggleMinimize={() => setIsEventLogMinimized(!isEventLogMinimized)}
           />
         </ResizablePanel>
       </ResizablePanelGroup>

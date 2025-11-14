@@ -2,7 +2,7 @@ import { useState } from 'react';
 import './Timeline.css';
 import NarrationBox from './NarrationBox';
 
-function Timeline({ duration, currentTime, isPlaying, playbackSpeed = 1, onTimeChange, onPlayPause, onReset, onSpeedChange, keyframes, sceneData }) {
+function Timeline({ duration, currentTime, isPlaying, playbackSpeed = 1, onTimeChange, onPlayPause, onReset, onSpeedChange, keyframes, sceneData, isMinimized = false, onToggleMinimize }) {
   const [isDragging, setIsDragging] = useState(false);
   
   const speedOptions = [0.5, 1, 2, 4, 8];
@@ -53,6 +53,59 @@ function Timeline({ duration, currentTime, isPlaying, playbackSpeed = 1, onTimeC
   };
 
   const currentEvent = getCurrentEvent();
+
+  // Minimized state - only show controls
+  if (isMinimized) {
+    return (
+      <div className="timeline-container minimized">
+        <div className="timeline-controls compact">
+          <button className="control-btn reset-btn" onClick={onReset} title="Reset to Start">
+            ⏮
+          </button>
+          <button className="control-btn play-pause-btn" onClick={onPlayPause} title={isPlaying ? 'Pause' : 'Play'}>
+            {isPlaying ? '⏸' : '▶'}
+          </button>
+          <button className="control-btn speed-btn" onClick={handleSpeedClick} title="Change Playback Speed">
+            {playbackSpeed}×
+          </button>
+          <div className="time-display">
+            {formatTime(currentTime)} / {formatTime(duration)}
+          </div>
+          {currentEvent && (
+            <span className="current-event-compact">{currentEvent.label}</span>
+          )}
+        </div>
+
+        <div className="timeline-slider-container compact">
+          <input
+            type="range"
+            min="0"
+            max={duration}
+            step="0.1"
+            value={currentTime}
+            onChange={handleSliderChange}
+            onMouseDown={handleSliderMouseDown}
+            onMouseUp={handleSliderMouseUp}
+            onTouchStart={handleSliderMouseDown}
+            onTouchEnd={handleSliderMouseUp}
+            className="timeline-slider"
+          />
+          <div className="keyframe-markers">
+            {scaledKeyframes.map((kf, idx) => (
+              <div
+                key={idx}
+                className="keyframe-marker"
+                style={{
+                  left: `${(kf.scaledTime / duration) * 100}%`,
+                }}
+                title={`${kf.label} - ${new Date(kf.timestamp).toLocaleTimeString()}`}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="timeline-container">

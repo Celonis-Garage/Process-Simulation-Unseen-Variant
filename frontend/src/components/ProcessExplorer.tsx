@@ -472,49 +472,49 @@ export function ProcessExplorer({ steps, edges, onAddStep, onRemoveStep, onReord
         {/* Main Process Area */}
         <div className="flex-1 flex flex-col">
           {/* Header */}
-          <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+          <div className="p-2.5 border-b border-gray-200 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div>
-                <h2 className="text-gray-900">Order to Cash Flow</h2>
-                <p className="text-sm text-gray-500 mt-1">Process Explorer View</p>
+                <h2 className="text-base font-semibold text-gray-900">Order to Cash Flow</h2>
+                <p className="text-xs text-gray-500 mt-0.5">Process Explorer View</p>
               </div>
               <button
                 onClick={() => setShowHelpDialog(true)}
-                className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
                 title="How to use Process Explorer"
               >
-                <Info className="w-4 h-4 text-gray-500" />
+                <Info className="w-3.5 h-3.5 text-gray-500" />
               </button>
             </div>
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+              <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-0.5">
                 <button
                   onClick={handleZoomOut}
-                  className="p-1.5 hover:bg-white rounded transition-colors"
+                  className="p-1 hover:bg-white rounded transition-colors"
                   title="Zoom Out"
                 >
-                  <ZoomOut className="w-4 h-4 text-gray-600" />
+                  <ZoomOut className="w-3.5 h-3.5 text-gray-600" />
                 </button>
                 <button
                   onClick={handleResetZoom}
-                  className="px-2 py-1.5 hover:bg-white rounded transition-colors text-xs text-gray-600"
+                  className="px-1.5 py-1 hover:bg-white rounded transition-colors text-xs text-gray-600"
                   title="Reset Zoom"
                 >
                   {Math.round(zoom * 100)}%
                 </button>
                 <button
                   onClick={handleZoomIn}
-                  className="p-1.5 hover:bg-white rounded transition-colors"
+                  className="p-1 hover:bg-white rounded transition-colors"
                   title="Zoom In"
                 >
-                  <ZoomIn className="w-4 h-4 text-gray-600" />
+                  <ZoomIn className="w-3.5 h-3.5 text-gray-600" />
                 </button>
                 <button
                   onClick={handleFullscreen}
-                  className="p-1.5 hover:bg-white rounded transition-colors ml-1"
+                  className="p-1 hover:bg-white rounded transition-colors ml-0.5"
                   title={isFullscreen ? "Exit Fullscreen (Esc)" : "Enter Fullscreen"}
                 >
-                  <Maximize2 className={`w-4 h-4 ${isFullscreen ? 'text-blue-600' : 'text-gray-600'}`} />
+                  <Maximize2 className={`w-3.5 h-3.5 ${isFullscreen ? 'text-blue-600' : 'text-gray-600'}`} />
                 </button>
               </div>
             </div>

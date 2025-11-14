@@ -2,7 +2,47 @@
   background: white;
   border-top: 1px solid #e5e7eb;
   padding: 1rem 2rem;
+  padding-top: 1.5rem;
   box-shadow: 0 -1px 3px 0 rgb(0 0 0 / 0.1);
+  position: relative;
+  transition: all 0.3s ease;
+  overflow-x: hidden;
+  overflow-y: auto;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.timeline-container.minimized {
+  padding: 0.75rem 2rem;
+  height: auto;
+}
+
+/* Enhanced scrollbar for timeline container */
+.timeline-container::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.timeline-container::-webkit-scrollbar-track {
+  background: #f3f4f6;
+  border-radius: 5px;
+}
+
+.timeline-container::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 5px;
+  border: 2px solid #f3f4f6;
+}
+
+.timeline-container::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* Firefox scrollbar for timeline container */
+.timeline-container {
+  scrollbar-width: thin;
+  scrollbar-color: #d1d5db #f3f4f6;
 }
 
 .timeline-header {
@@ -39,6 +79,52 @@
   align-items: center;
   gap: 1rem;
   margin-bottom: 1rem;
+}
+
+.timeline-controls.compact {
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.timeline-controls.compact .control-btn {
+  width: 35px;
+  height: 35px;
+  font-size: 1.1rem;
+}
+
+.timeline-controls.compact .reset-btn {
+  width: 30px;
+  height: 30px;
+  font-size: 1rem;
+}
+
+.timeline-controls.compact .speed-btn {
+  width: 45px;
+  height: 35px;
+  font-size: 0.85rem;
+}
+
+.timeline-controls.compact .speed-btn::after {
+  display: none;
+}
+
+.timeline-controls.compact .time-display {
+  font-size: 0.85rem;
+}
+
+.current-event-compact {
+  margin-left: auto;
+  font-size: 0.8rem;
+  color: #2563eb;
+  font-weight: 600;
+  max-width: 300px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.timeline-slider-container.compact {
+  margin-bottom: 0;
 }
 
 .control-btn {
@@ -188,24 +274,35 @@
   gap: 0.5rem;
   overflow-x: auto;
   padding: 0.5rem 0;
+  padding-bottom: 0.75rem;
 }
 
+/* Enhanced scrollbar styling for timeline events */
 .timeline-events::-webkit-scrollbar {
-  height: 6px;
+  height: 10px;
 }
 
 .timeline-events::-webkit-scrollbar-track {
   background: #f3f4f6;
-  border-radius: 3px;
+  border-radius: 5px;
+  margin: 0 4px;
 }
 
 .timeline-events::-webkit-scrollbar-thumb {
   background: #d1d5db;
-  border-radius: 3px;
+  border-radius: 5px;
+  border: 2px solid #f3f4f6;
 }
 
 .timeline-events::-webkit-scrollbar-thumb:hover {
   background: #9ca3af;
+  border-color: #e5e7eb;
+}
+
+/* Firefox scrollbar */
+.timeline-events {
+  scrollbar-width: thin;
+  scrollbar-color: #d1d5db #f3f4f6;
 }
 
 .timeline-event {

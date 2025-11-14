@@ -775,7 +775,7 @@ function AnimatedItem({ itemData, currentTime }) {
   );
 }
 
-function Scene({ sceneData, currentTime, isPlaying, playbackSpeed = 1, onTimeUpdate }) {
+function Scene({ sceneData, currentTime, isPlaying, playbackSpeed = 1, onTimeUpdate, interactionMode = 'rotate' }) {
   // Safely destructure with default values
   const { 
     animation, 
@@ -898,11 +898,16 @@ function Scene({ sceneData, currentTime, isPlaying, playbackSpeed = 1, onTimeUpd
         />
       ))}
 
-      {/* Camera controls */}
+      {/* Camera controls - mode-specific */}
       <OrbitControls
         enablePan={true}
         enableZoom={true}
         enableRotate={true}
+        mouseButtons={{
+          LEFT: interactionMode === 'pan' ? THREE.MOUSE.PAN : THREE.MOUSE.ROTATE,
+          MIDDLE: THREE.MOUSE.DOLLY,
+          RIGHT: interactionMode === 'pan' ? THREE.MOUSE.ROTATE : THREE.MOUSE.PAN
+        }}
         minDistance={10}
         maxDistance={80}
         maxPolarAngle={Math.PI / 2.2}
